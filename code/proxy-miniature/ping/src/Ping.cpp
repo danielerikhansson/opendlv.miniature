@@ -93,6 +93,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Ping::body()
     SendPulse(m_pins.at(0));
     int64_t duration = GetTimeOfFlight(m_pins.at(1));
     std::cout << "Time of flight (microseconds): " << duration << std::endl;
+    std::cout << "Distance (centimeter): " << (duration / (2 * 29.1)) << std::endl;
   }
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
 }
@@ -114,7 +115,7 @@ int64_t Ping::GetTimeOfFlight(uint16_t const a_pin)
 
   struct timespec sleeptime;
   sleeptime.tv_sec = 0;
-  sleeptime.tv_nsec = 1000000L;
+  sleeptime.tv_nsec = 1000L;
 
   odcore::data::TimeStamp timestamp;
   const int64_t TIMEOUT_MICROSECONDS = 10000;
