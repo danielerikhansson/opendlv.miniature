@@ -115,7 +115,7 @@ int64_t Ping::GetTimeOfFlight(uint16_t const a_pin)
 
   struct timespec sleeptime;
   sleeptime.tv_sec = 0;
-  sleeptime.tv_nsec = 1000L;
+  sleeptime.tv_nsec = 100L;
 
   odcore::data::TimeStamp timestamp;
   const int64_t TIMEOUT_MICROSECONDS = 10000;
