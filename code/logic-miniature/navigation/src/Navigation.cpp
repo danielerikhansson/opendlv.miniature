@@ -49,11 +49,11 @@ Navigation::Navigation(const int &argc, char **argv)
 /*
   Destructor.
 */
-Navigation::~Navigation() 
+Navigation::~Navigation()
 {
 }
 
-/* 
+/*
   This method reads values from the configuration file. Note that there is only
   one global configuration storage loaded by the central odsupercomponent
   module. If the the configuration file is changed, the odsupercompnent module
@@ -62,17 +62,17 @@ Navigation::~Navigation()
 void Navigation::setUp()
 {
   odcore::base::KeyValueConfiguration kv = getKeyValueConfiguration();
-  std::string const gpioPinsString = 
+  std::string const gpioPinsString =
       kv.getValue<std::string>("logic-miniature-navigation.gpio-pins");
-  std::vector<std::string> gpioPinsVector = 
+  std::vector<std::string> gpioPinsVector =
       odcore::strings::StringToolbox::split(gpioPinsString, ',');
   for (auto pin : gpioPinsVector) {
-    m_gpioOutputPins.push_back(std::stoi(pin)); 
+    m_gpioOutputPins.push_back(std::stoi(pin));
   }
 
-  std::string const pwmPinsString = 
+  std::string const pwmPinsString =
       kv.getValue<std::string>("logic-miniature-navigation.pwm-pins");
-  std::vector<std::string> pwmPinsVector = 
+  std::vector<std::string> pwmPinsVector =
       odcore::strings::StringToolbox::split(pwmPinsString, ',');
   for (auto pin : pwmPinsVector) {
     m_pwmOutputPins.push_back(std::stoi(pin));
@@ -81,20 +81,20 @@ void Navigation::setUp()
 
 /*
   This method is run automatically when the system is shutting down (before the
-  destructor). It is typically used to close log files and de-allocate 
+  destructor). It is typically used to close log files and de-allocate
   dynamically allocated memory.
 */
 void Navigation::tearDown()
 {
 }
 
-/* 
-  The while loop in this method runs at a predefined (in configuration) 
+/*
+  The while loop in this method runs at a predefined (in configuration)
   frequency.
 */
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 {
-  while (getModuleStateAndWaitForRemainingTimeInTimeslice() == 
+  while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
 
     // The mutex is required since 'body' and 'nextContainer' competes by
@@ -102,17 +102,23 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     odcore::base::Lock l(m_mutex);
 
     //// Example below.
-    
-    std::cout << "TODO: Remove example." << std::endl;
+
 
     // Print some data collected from the 'nextContainer' method below.
     float voltageReadingPin0 = m_analogReadings[0];
     std::cout << "Reading from analog pin 0: " << voltageReadingPin0 << std::endl;
 
-    // Loop through all General Purpose IO (GPIO) pins and randomize their 
+    int gpio_44 = m_gpioReadings[44];
+    int gpio_45 = m_gpioReadings[45];
+
+    std::cout << "GPIO_44: " << gpio_44 << std::endl;
+    std::cout << "GPIO_45: " << gpio_45 << std::endl;
+
+
+    // Loop through all General Purpose IO (GPIO) pins and randomize their
     // state. The state is then sent as a message to the module interfacing
     // to the actual hardware.
-    for (auto pin : m_gpioOutputPins) {
+  /*  for (auto pin : m_gpioOutputPins) {
       bool value = static_cast<bool>(std::rand() % 2);
 
       opendlv::proxy::ToggleRequest::ToggleState state;
@@ -123,29 +129,63 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       }
 
       opendlv::proxy::ToggleRequest request(pin, state);
-      
-      odcore::data::Container c(request);
-      getConference().send(c);
-      
-      std::cout << "[" << getName() << "] Sending ToggleRequest: " 
-          << request.toString() << std::endl;
-    }
 
-    // Loop through all Pulse Width Modulation (PWM) pins and randomize their 
-    // value. The value is then sent as a message to the module interfacing
-    // to the actual hardware.
-    for (auto pin : m_pwmOutputPins) {
-      int32_t rand = (std::rand() % 11) - 5 ;
-      uint32_t value = 1500000 + rand * 100000;
-      
-      opendlv::proxy::PwmRequest request(pin, value);
-      
       odcore::data::Container c(request);
       getConference().send(c);
-      
-      std::cout << "[" << getName() << "] Sending PwmRequest: " 
+
+      std::cout << "[" << getName() << "] Sending ToggleRequest: "
           << request.toString() << std::endl;
-    }
+    } */
+
+    opendlv::proxy::ToggleRequest request30(30, opendlv::proxy::ToggleRequest::On);
+    odcore::data::Container c30(request30);
+
+    getConference().send(c30);
+
+    opendlv::proxy::ToggleRequest request31(31, opendlv::proxy::ToggleRequest::Off);
+    odcore::data::Container c31(request31);
+
+    getConference().send(c31);
+
+    opendlv::proxy::ToggleRequest request60(60, opendlv::proxy::ToggleRequest::Off);
+    odcore::data::Container c60(request60);
+
+    getConference().send(c60);
+
+    opendlv::proxy::ToggleRequest request51(51, opendlv::proxy::ToggleRequest::On);
+    odcore::data::Container c51(request51);
+
+    getConference().send(c51);
+
+
+    // PWMCHIP2 IS THE LEFT ACTUATOR.
+    // PIN 60 AND 51 IS ALSO LEFT ACTUATOR.
+
+    // Loop through all Pulse Width Modulation (PWM) pins and randomize their
+    // value. The value is then sent as a message to the module interfacing
+    // to the actual hardware.use
+  //  for (auto pin : m_pwmOutputPins) {
+    //  int32_t rand = (std::rand() % 11) - 5 ;
+      uint32_t value = 50000; // + rand * 100000;
+      uint32_t value1 = 25000;
+
+      opendlv::proxy::PwmRequest request0(0, value);
+      odcore::data::Container c0(request0);
+      c0.setSenderStamp(1);
+      getConference().send(c0);
+
+      opendlv::proxy::PwmRequest request1(0, value1);
+      odcore::data::Container c1(request1);
+      c1.setSenderStamp(2);
+      getConference().send(c1);
+
+
+      std::cout << "[" << getName() << "] Sending PwmRequest: "
+          << request0.toString() << std::endl;
+
+          std::cout << "[" << getName() << "] Sending PwmRequest: "
+              << request1.toString() << std::endl;
+  //  }
 
     ///// Example above.
 
@@ -155,8 +195,8 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
 }
 
-/* 
-  This method receives messages from all other modules (in the same conference 
+/*
+  This method receives messages from all other modules (in the same conference
   id, cid). Here, the messages AnalogReading and ToggleReading is received
   from the modules interfacing to the hardware.
 */
@@ -166,7 +206,7 @@ void Navigation::nextContainer(odcore::data::Container &a_c)
 
   int32_t dataType = a_c.getDataType();
   if (dataType == opendlv::proxy::AnalogReading::ID()) {
-    opendlv::proxy::AnalogReading reading = 
+    opendlv::proxy::AnalogReading reading =
         a_c.getData<opendlv::proxy::AnalogReading>();
 
     uint16_t pin = reading.getPin();
@@ -174,11 +214,11 @@ void Navigation::nextContainer(odcore::data::Container &a_c)
 
     m_analogReadings[pin] = voltage; // Save the input to the class global map.
 
-    std::cout << "[" << getName() << "] Received an AnalogReading: " 
+    std::cout << "[" << getName() << "] Received an AnalogReading: "
         << reading.toString() << "." << std::endl;
 
   } else if (dataType == opendlv::proxy::ToggleReading::ID()) {
-    opendlv::proxy::ToggleReading reading = 
+    opendlv::proxy::ToggleReading reading =
         a_c.getData<opendlv::proxy::ToggleReading>();
 
     uint16_t pin = reading.getPin();
