@@ -166,13 +166,27 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     // to the actual hardware.use
   //  for (auto pin : m_pwmOutputPins) {
     //  int32_t rand = (std::rand() % 11) - 5 ;
-      uint32_t value = 50000; // + rand * 100000;
-      uint32_t value1 = 25000;
+      uint32_t value = 0000;
+      uint32_t value1 = 20000;
+
+      if (gpio_44 == 1)
+      {
+        value = 000;
+        std::cout << "*****************If state - 1" << std::endl;
+      }
+
+      if (gpio_45 == 1)
+      {
+        value1 = 000;
+        std::cout << "*****************If state - 2" << std::endl;
+      }
+
 
       opendlv::proxy::PwmRequest request0(0, value);
       odcore::data::Container c0(request0);
       c0.setSenderStamp(1);
       getConference().send(c0);
+
 
       opendlv::proxy::PwmRequest request1(0, value1);
       odcore::data::Container c1(request1);
