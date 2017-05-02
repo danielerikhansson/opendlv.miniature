@@ -94,6 +94,16 @@ void Navigation::tearDown()
 */
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 {
+  int FSMstate = 0;
+  uint32_t pwmValueLeftWheel = 0;
+  uint32_t pwmValueRightWheel = 0;
+  int leftForward = 1;
+  int rightForward = 1;
+  int counter = 0;
+  opendlv::proxy::ToggleRequest::ToggleState leftRotation_1;
+  opendlv::proxy::ToggleRequest::ToggleState leftRotation_2;
+  opendlv::proxy::ToggleRequest::ToggleState rightRotation_1;
+  opendlv::proxy::ToggleRequest::ToggleState rightRotation_2;
   while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
 
@@ -115,90 +125,94 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     std::cout << "GPIO_45: " << gpio_45 << std::endl;
 
 
-    // Loop through all General Purpose IO (GPIO) pins and randomize their
-    // state. The state is then sent as a message to the module interfacing
-    // to the actual hardware.
-  /*  for (auto pin : m_gpioOutputPins) {
-      bool value = static_cast<bool>(std::rand() % 2);
-
-      opendlv::proxy::ToggleRequest::ToggleState state;
-      if (value) {
-        state = opendlv::proxy::ToggleRequest::On;
-      } else {
-        state = opendlv::proxy::ToggleRequest::Off;
-      }
-
-      opendlv::proxy::ToggleRequest request(pin, state);
-
-      odcore::data::Container c(request);
-      getConference().send(c);
-
-      std::cout << "[" << getName() << "] Sending ToggleRequest: "
-          << request.toString() << std::endl;
-    } */
-
-    opendlv::proxy::ToggleRequest request30(30, opendlv::proxy::ToggleRequest::On);
-    odcore::data::Container c30(request30);
-
-    getConference().send(c30);
-
-    opendlv::proxy::ToggleRequest request31(31, opendlv::proxy::ToggleRequest::Off);
-    odcore::data::Container c31(request31);
-
-    getConference().send(c31);
-
-    opendlv::proxy::ToggleRequest request60(60, opendlv::proxy::ToggleRequest::Off);
-    odcore::data::Container c60(request60);
-
-    getConference().send(c60);
-
-    opendlv::proxy::ToggleRequest request51(51, opendlv::proxy::ToggleRequest::On);
-    odcore::data::Container c51(request51);
-
-    getConference().send(c51);
 
 
-    // PWMCHIP2 IS THE LEFT ACTUATOR.
-    // PIN 60 AND 51 IS ALSO LEFT ACTUATOR.
-
-    // Loop through all Pulse Width Modulation (PWM) pins and randomize their
-    // value. The value is then sent as a message to the module interfacing
-    // to the actual hardware.use
-  //  for (auto pin : m_pwmOutputPins) {
-    //  int32_t rand = (std::rand() % 11) - 5 ;
-      uint32_t value = 0000;
-      uint32_t value1 = 20000;
+    if (FSMstate == 0) {
+      leftForward = 1;
+      rightForward = 1;
+      pwmValueLeftWheel = 40000;
+      pwmValueRightWheel = 40000;
 
       if (gpio_44 == 1)
       {
-        value = 000;
-        std::cout << "*****************If state - 1" << std::endl;
+        FSMstate = 1;
+        counter = 0;
       }
 
       if (gpio_45 == 1)
       {
-        value1 = 000;
-        std::cout << "*****************If state - 2" << std::endl;
+        FSMstate = 1;
+        counter = 0;
+      }
+      counter++;
+    } else if (FSMstate) {
+      pwmValueRightWheel = 30000;
+      pwmValueLeftWheel = 30000;
+
+      leftForward = 0;
+      rightForward = 0;
+
+      if (counter > 69) {
+        FSMstate = 0;
       }
 
 
-      opendlv::proxy::PwmRequest request0(0, value);
-      odcore::data::Container c0(request0);
-      c0.setSenderStamp(1);
-      getConference().send(c0);
+      counter++;
+    }
 
 
-      opendlv::proxy::PwmRequest request1(0, value1);
-      odcore::data::Container c1(request1);
-      c1.setSenderStamp(2);
-      getConference().send(c1);
+
+    if (leftForward) {
+      leftRotation_1 = opendlv::proxy::ToggleRequest::Off;
+      leftRotation_2 = opendlv::proxy::ToggleRequest::On;
+    } else {
+      leftRotation_1 = opendlv::proxy::ToggleRequest::On;
+      leftRotation_2 = opendlv::proxy::ToggleRequest::Off;
+    }
+
+    if (rightForward) {
+      rightRotation_1 = opendlv::proxy::ToggleRequest::On;
+      rightRotation_2 = opendlv::proxy::ToggleRequest::Off;
+    } else {
+      rightRotation_1 = opendlv::proxy::ToggleRequest::Off;
+      rightRotation_2 = opendlv::proxy::ToggleRequest::On;
+    }
+
+// ROTATION.
+    opendlv::proxy::ToggleRequest request30(30, rightRotation_1);
+    odcore::data::Container c30(request30);
+    getConference().send(c30);
+
+    opendlv::proxy::ToggleRequest request31(31, rightRotation_2);
+    odcore::data::Container c31(request31);
+    getConference().send(c31);
+
+    opendlv::proxy::ToggleRequest request60(60, leftRotation_1);
+    odcore::data::Container c60(request60);
+    getConference().send(c60);
+
+    opendlv::proxy::ToggleRequest request51(51, leftRotation_2);
+    odcore::data::Container c51(request51);
+    getConference().send(c51);
+
+
+// VELOCITY.
+    opendlv::proxy::PwmRequest requestRightWheel(0, pwmValueRightWheel);
+    odcore::data::Container cRightWheel(requestRightWheel);
+    cRightWheel.setSenderStamp(1);
+    getConference().send(cRightWheel);
+
+    opendlv::proxy::PwmRequest requestLeftWheel(0, pwmValueLeftWheel);
+    odcore::data::Container cLeftWheel(requestLeftWheel);
+    cLeftWheel.setSenderStamp(2);
+    getConference().send(cLeftWheel);
 
 
       std::cout << "[" << getName() << "] Sending PwmRequest: "
-          << request0.toString() << std::endl;
+          << requestRightWheel.toString() << std::endl;
 
           std::cout << "[" << getName() << "] Sending PwmRequest: "
-              << request1.toString() << std::endl;
+              << requestLeftWheel.toString() << std::endl;
   //  }
 
     ///// Example above.
