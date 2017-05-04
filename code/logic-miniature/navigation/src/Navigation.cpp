@@ -94,9 +94,9 @@ void Navigation::tearDown()
 */
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 {
-  int FSMstate = 0;
-  uint32_t pwmValueLeftWheel = 0;
-  uint32_t pwmValueRightWheel = 0;
+  std::string FSMstate = "wander";
+  uint32_t pwmValueLeftWheel = 40000;
+  uint32_t pwmValueRightWheel = 40000;
   int leftForward = 1;
   int rightForward = 1;
   int counter = 0;
@@ -118,15 +118,59 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     float voltageReadingPin0 = m_analogReadings[0];
     std::cout << "Reading from analog pin 0: " << voltageReadingPin0 << std::endl;
 
-    int gpio_44 = m_gpioReadings[44];
-    int gpio_45 = m_gpioReadings[45];
+    int leftWhiskerActive = m_gpioReadings[44];
+    int rightWhiskerActive = m_gpioReadings[45];
+   
+    std::cout << "leftWhiskerActive: " << leftWhiskerActive << std::endl;
+    std::cout << "rightWhiskerActive: " << rightWhiskerActive << std::endl;
+    
+    std::cout << "State: " << FSMstate << std::endl;
+    std::cout << "Counter: " << counter << std::endl;
 
-    std::cout << "GPIO_44: " << gpio_44 << std::endl;
-    std::cout << "GPIO_45: " << gpio_45 << std::endl;
+    // default values for wander base state
+    pwmValueLeftWheel = 40000;
+    pwmValueRightWheel = 40000;
+    leftForward = 1;
+    rightForward = 1;
+
+    if (leftWhiskerActive && rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
+     FSMstate = "backUp";
+    }
+    else if (leftWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
+     pwmValueRightWheel = 10000;
+    }
+    else if (rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
+     pwmValueLeftWheel = 10000;
+    }
+
+    if (FSMstate == "backUp") {
+      leftForward = 0;
+      rightForward = 0;
+      if (counter > 15) {
+        FSMstate = "rotate";
+        counter = 0;
+      }
+      counter++;
+    }
+    if (FSMstate == "rotate") {
+std::cout << "################################: " << std::endl;
+std::cout << "################################: " << std::endl;
+std::cout << "################################: " << std::endl;
+std::cout << "################################: " << std::endl;
+std::cout << "################################: " << std::endl;
+std::cout << "################################: " << std::endl;
+
+      leftForward = 0;
+      rightForward = 1;
+      if (counter > 24) {
+        FSMstate = "wander";
+        counter = 0;
+      }
+      counter++;
+    }
 
 
-
-
+/*
     if (FSMstate == 0) {
       leftForward = 1;
       rightForward = 1;
@@ -160,7 +204,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       counter++;
     }
 
-
+*/
 
     if (leftForward) {
       leftRotation_1 = opendlv::proxy::ToggleRequest::Off;
