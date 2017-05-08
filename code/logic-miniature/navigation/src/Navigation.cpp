@@ -95,15 +95,17 @@ void Navigation::tearDown()
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 {
   std::string FSMstate = "wander";
-  uint32_t pwmValueLeftWheel = 40000;
-  uint32_t pwmValueRightWheel = 40000;
+  uint32_t pwmValueLeftWheel = 35000;
+  uint32_t pwmValueRightWheel = 33500;
   int leftForward = 1;
   int rightForward = 1;
   int counter = 0;
+  int blinkLED = 0;
   opendlv::proxy::ToggleRequest::ToggleState leftRotation_1;
   opendlv::proxy::ToggleRequest::ToggleState leftRotation_2;
   opendlv::proxy::ToggleRequest::ToggleState rightRotation_1;
   opendlv::proxy::ToggleRequest::ToggleState rightRotation_2;
+opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
   while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
 
@@ -118,8 +120,8 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     float voltageReadingPin0 = m_analogReadings[0];
     std::cout << "Reading from analog pin 0: " << voltageReadingPin0 << std::endl;
 
-    int leftWhiskerActive = m_gpioReadings[44];
-    int rightWhiskerActive = m_gpioReadings[45];
+    int leftWhiskerActive = m_gpioReadings[45];
+    int rightWhiskerActive = m_gpioReadings[44];
    
     std::cout << "leftWhiskerActive: " << leftWhiskerActive << std::endl;
     std::cout << "rightWhiskerActive: " << rightWhiskerActive << std::endl;
@@ -127,26 +129,31 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     std::cout << "State: " << FSMstate << std::endl;
     std::cout << "Counter: " << counter << std::endl;
 
+
     // default values for wander base state
-    pwmValueLeftWheel = 40000;
-    pwmValueRightWheel = 40000;
+    pwmValueLeftWheel = 35000;
+    pwmValueRightWheel = 33500;
     leftForward = 1;
     rightForward = 1;
+    blinkLED = 0;
 
     if (leftWhiskerActive && rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
      FSMstate = "backUp";
     }
     else if (leftWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
-     pwmValueRightWheel = 10000;
+     // pwmValueRightWheel = 10000;
+	FSMstate = "backUp";
     }
     else if (rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
-     pwmValueLeftWheel = 10000;
+     // pwmValueLeftWheel = 10000;
+	FSMstate = "backUp";
     }
 
     if (FSMstate == "backUp") {
+      blinkLED = 1;
       leftForward = 0;
       rightForward = 0;
-      if (counter > 15) {
+      if (counter > 20) {
         FSMstate = "rotate";
         counter = 0;
       }
@@ -162,7 +169,7 @@ std::cout << "################################: " << std::endl;
 
       leftForward = 0;
       rightForward = 1;
-      if (counter > 24) {
+      if (counter > 15) {
         FSMstate = "wander";
         counter = 0;
       }
@@ -170,41 +177,6 @@ std::cout << "################################: " << std::endl;
     }
 
 
-/*
-    if (FSMstate == 0) {
-      leftForward = 1;
-      rightForward = 1;
-      pwmValueLeftWheel = 40000;
-      pwmValueRightWheel = 40000;
-
-      if (gpio_44 == 1)
-      {
-        FSMstate = 1;
-        counter = 0;
-      }
-
-      if (gpio_45 == 1)
-      {
-        FSMstate = 1;
-        counter = 0;
-      }
-      counter++;
-    } else if (FSMstate) {
-      pwmValueRightWheel = 30000;
-      pwmValueLeftWheel = 30000;
-
-      leftForward = 0;
-      rightForward = 0;
-
-      if (counter > 69) {
-        FSMstate = 0;
-      }
-
-
-      counter++;
-    }
-
-*/
 
     if (leftForward) {
       leftRotation_1 = opendlv::proxy::ToggleRequest::Off;
@@ -221,6 +193,16 @@ std::cout << "################################: " << std::endl;
       rightRotation_1 = opendlv::proxy::ToggleRequest::Off;
       rightRotation_2 = opendlv::proxy::ToggleRequest::On;
     }
+
+    if (blinkLED) {
+      blinkLED_state = opendlv::proxy::ToggleRequest::On;
+    } else {
+      blinkLED_state = opendlv::proxy::ToggleRequest::Off;
+    }
+
+    opendlv::proxy::ToggleRequest requestLED(47, blinkLED_state);
+    odcore::data::Container cLED(requestLED);
+    getConference().send(cLED);
 
 // ROTATION.
     opendlv::proxy::ToggleRequest request30(30, rightRotation_1);
