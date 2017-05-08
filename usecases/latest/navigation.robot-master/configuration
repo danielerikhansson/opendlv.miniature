@@ -74,9 +74,9 @@ proxy-miniature-analog.pins = 0,1,2,3,4,5,6
 
 proxy-miniature-gpio.debug = 1
 proxy-miniature-gpio.systemPath = /sys/class/gpio
-proxy-miniature-gpio.pins = 30,31,60,51,44,45,47
-proxy-miniature-gpio.values = 0,1,0,1,0,0,0
-proxy-miniature-gpio.directions = out,out,out,out,in,in,out
+proxy-miniature-gpio.pins = 30,31,60,51,26,46,47,44,45
+proxy-miniature-gpio.values = 0,1,0,1,0,0,0,0,0
+proxy-miniature-gpio.directions = out,out,out,out,in,in,out,in,in
 
 proxy-miniature-pwm:1.debug = 1
 proxy-miniature-pwm:1.systemPath = /sys/class/pwm/pwmchip0

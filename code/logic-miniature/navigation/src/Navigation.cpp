@@ -120,8 +120,8 @@ opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
     float voltageReadingPin0 = m_analogReadings[0];
     std::cout << "Reading from analog pin 0: " << voltageReadingPin0 << std::endl;
 
-    int leftWhiskerActive = m_gpioReadings[45];
-    int rightWhiskerActive = m_gpioReadings[44];
+    int leftWhiskerActive = m_gpioReadings[26];
+    int rightWhiskerActive = m_gpioReadings[46];
    
     std::cout << "leftWhiskerActive: " << leftWhiskerActive << std::endl;
     std::cout << "rightWhiskerActive: " << rightWhiskerActive << std::endl;
