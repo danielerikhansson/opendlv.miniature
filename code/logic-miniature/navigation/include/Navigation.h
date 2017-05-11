@@ -55,6 +55,7 @@ class Navigation :
   std::map<uint16_t, bool> m_gpioReadings;
   std::vector<uint16_t> m_gpioOutputPins;
   std::vector<uint16_t> m_pwmOutputPins;
+  double m_sonarDistance;
 };
 
 }
