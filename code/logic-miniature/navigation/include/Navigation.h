@@ -44,9 +44,12 @@ class Navigation :
  private:
   void setUp();
   void tearDown();
+  void findPath(data::environment::Point3, data::environment::Point3);
+  int posToCell(data::environment::Point3);
+  data::environment::Point3 cellToPos(int);
   virtual odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
   std::vector<data::environment::Point3> ReadPointString(std::string const &) const;
-
+  //std::vector<data::environment::Point3> findPath(data::environment::Point3 &start, data::environment::Point3 &goal);
   odcore::base::Mutex m_mutex;
   std::vector<data::environment::Line> m_outerWalls;
   std::vector<data::environment::Line> m_innerWalls;
@@ -55,6 +58,13 @@ class Navigation :
   std::map<uint16_t, bool> m_gpioReadings;
   std::vector<uint16_t> m_gpioOutputPins;
   std::vector<uint16_t> m_pwmOutputPins;
+  double arenaWidth;
+  double arenaHeight;
+  data::environment::Point3 arenaOffset;
+  double gridCellSize;
+  int nbrGridCols;
+  int nbrGridRows;
+  int nbrGridCells;
 };
 
 }

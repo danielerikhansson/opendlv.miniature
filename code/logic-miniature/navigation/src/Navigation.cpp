@@ -36,6 +36,8 @@ namespace opendlv {
 namespace logic {
 namespace miniature {
 
+
+
 /*
   Constructor.
 */
@@ -49,6 +51,13 @@ Navigation::Navigation(const int &argc, char **argv)
     , m_gpioReadings()
     , m_gpioOutputPins()
     , m_pwmOutputPins()
+    , arenaWidth()
+    , arenaHeight()
+    , arenaOffset()
+    , gridCellSize(4) //in decimeters?
+    , nbrGridCols()
+    , nbrGridRows()
+    , nbrGridCells()
 {
 }
 
@@ -118,6 +127,49 @@ void Navigation::setUp()
   for (uint32_t i = 0; i < m_pointsOfInterest.size(); i++) {
     std::cout << "Point of interest " << i << ": " << m_pointsOfInterest[i].toString() << std::endl;
   }
+
+  // arena placement, account for arena being tilted!!!
+  double minX = m_outerWalls[0].getA().getX();
+  double minY = m_outerWalls[0].getA().getY();
+  double maxX = m_outerWalls[0].getA().getX();
+  double maxY = m_outerWalls[0].getA().getY();
+  for (uint32_t i = 0; i < 4; i++) {
+    if (m_outerWalls[i].getA().getX() < minX) {
+      minX = m_outerWalls[i].getA().getX();
+    }
+    else if (m_outerWalls[i].getA().getX() > maxX) {
+      maxX = m_outerWalls[i].getA().getX();
+    }
+    if (m_outerWalls[i].getB().getX() < minX) {
+      minX = m_outerWalls[i].getB().getX();
+    }
+    else if (m_outerWalls[i].getB().getX() > maxX) {
+      maxX = m_outerWalls[i].getB().getX();
+    }
+    if (m_outerWalls[i].getA().getY() < minY) {
+      minY = m_outerWalls[i].getA().getY();
+    }
+    else  if (m_outerWalls[i].getA().getY() > maxY) {
+      maxY = m_outerWalls[i].getA().getY();
+    }
+    if (m_outerWalls[i].getB().getY() < minY) {
+      minY = m_outerWalls[i].getB().getY();
+    }
+    else if (m_outerWalls[i].getB().getY() > maxY) {
+      maxY = m_outerWalls[i].getB().getY();
+    }
+  }
+  arenaOffset.setX(minX);
+  arenaOffset.setY(minY);
+  arenaWidth = maxX-minX;
+  arenaHeight = maxY-minY;
+  nbrGridCols = round(arenaWidth/gridCellSize);
+  nbrGridRows = round(arenaHeight/gridCellSize);
+  nbrGridCells = nbrGridCols*nbrGridRows;
+  std::cout << "Arena offset: " << arenaOffset.toString() << std::endl;
+  std::cout << "Arena width: " << arenaWidth << std::endl;
+  std::cout << "Arena height:  " << arenaHeight << std::endl;
+
 }
 
 /*
@@ -128,6 +180,9 @@ void Navigation::setUp()
 void Navigation::tearDown()
 {
 }
+
+
+
 
 /*
   The while loop in this method runs at a predefined (in configuration)
@@ -286,9 +341,65 @@ std::cout << "################################: " << std::endl;
 
     ///// TODO: Add proper behaviours.
     std::cout << "TODO: Add proper behaviour." << std::endl;
+
+
+
+    /* testing/debugging A* and transfomrations methods
+    data::environment::Point3 startPos = m_outerWalls[0].getA();
+    data::environment::Point3 goalPos = m_outerWalls[0].getB();
+    findPath(startPos, goalPos);
+    data::environment::Point3 tmp;
+    tmp.setX(-4);
+    tmp.setY(-2);
+    int tmpCell = posToCell(tmp);
+    std::cout << "Test position:" << tmp.toString() << std::endl;
+    std::cout << "Corresponding cell:" << tmpCell << std::endl;
+    std::cout << "Transformed back to position:" << cellToPos(tmpCell).toString() << std::endl;
+    */
   }
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
 }
+
+
+
+/* A* searh method
+In progress
+*/
+void Navigation::findPath(data::environment::Point3 startPos, data::environment::Point3 goalPos){
+  std::cout<< "in findPath" << std::endl;
+  std::cout<< startPos.toString() << std::endl;
+  std::cout<< goalPos.toString() << std::endl;
+  std::cout<< m_pointsOfInterest[0].toString() << std::endl;
+  //return data::environment::Point3 startPos;
+}
+
+
+// Helper functions for coordinate transformation
+int Navigation::posToCell(data::environment::Point3 position){
+  double x = position.getX() - arenaOffset.getX(); //adjust for placement of arena
+  double y = position.getY() - arenaOffset.getY(); //adjust for placement of arena
+  //std::cout<< x << std::endl;
+  //std::cout<< y << std::endl;
+  int bigChunk =  round(y/gridCellSize)*nbrGridCols;
+  int smallChunk = round(x/gridCellSize);
+  //std::cout << bigChunk << std::endl;
+  //std::cout << smallChunk << std::endl;
+  return bigChunk+smallChunk;
+}
+
+data::environment::Point3 Navigation::cellToPos(int cell){
+  int yRow = floor(cell/nbrGridCols);
+  double y = yRow*gridCellSize;
+  double x = (cell%nbrGridCols)*gridCellSize; 
+  data::environment::Point3 coordinates;
+  coordinates.setX(x+arenaOffset.getX()); //adjust for placement of arena
+  coordinates.setY(y+arenaOffset.getY()); //adjust for placement of arena
+  return coordinates;
+}
+
+
+
+
 
 /*
   This method receives messages from all other modules (in the same conference
@@ -325,6 +436,7 @@ void Navigation::nextContainer(odcore::data::Container &a_c)
     }
 
     m_gpioReadings[pin] = state; // Save the state to the class global map.
+
 
     std::cout << "[" << getName() << "] Received a ToggleReading: "
         << reading.toString() << "." << std::endl;
