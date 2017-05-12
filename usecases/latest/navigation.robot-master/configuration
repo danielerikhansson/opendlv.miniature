@@ -57,7 +57,12 @@ odsupercomponent.pulsetimeack.timeout = 5000 # (in milliseconds)
 # before supercomponent sends the pulse messages the next module in this execution
 # cycle. This value needs to be adjusted for networked simulations to ensure
 # deterministic execution.
+#odsupercomponent.pulsetimeack.yield = 5000 # (in microseconds) # OLD
+
+odsupercomponent.pulseshift.shift = 10000 # (in microseconds)
+odsupercomponent.pulsetimeack.timeout = 5000 # (in milliseconds)
 odsupercomponent.pulsetimeack.yield = 5000 # (in microseconds)
+odsupercomponent.pulsetimeack.exclude = odcockpit
 
 # List of modules (without blanks) that will not get a pulse message from odsupercomponent.
 odsupercomponent.pulsetimeack.exclude = odcockpit
@@ -69,26 +74,36 @@ odsupercomponent.pulsetimeack.exclude = odcockpit
 #
 
 proxy-miniature-analog.conversion-constant = 1
-proxy-miniature-analog.debug = 1
+proxy-miniature-analog.debug = 0
 proxy-miniature-analog.pins = 0,1,2,3,4,5,6
 
-proxy-miniature-gpio.debug = 1
+proxy-miniature-gpio.debug = 0
 proxy-miniature-gpio.systemPath = /sys/class/gpio
 proxy-miniature-gpio.pins = 30,31,60,51,26,46,47,44,45
 proxy-miniature-gpio.values = 0,1,0,1,0,0,0,0,0
 proxy-miniature-gpio.directions = out,out,out,out,in,in,out,in,in
 
-proxy-miniature-pwm:1.debug = 1
+proxy-miniature-pwm:1.debug = 0
 proxy-miniature-pwm:1.systemPath = /sys/class/pwm/pwmchip0
 proxy-miniature-pwm:1.pins = 0
 proxy-miniature-pwm:1.periodsNs = 50000
 proxy-miniature-pwm:1.dutyCyclesNs = 25000
 
-proxy-miniature-pwm:2.debug = 1
+proxy-miniature-pwm:2.debug = 0
 proxy-miniature-pwm:2.systemPath = /sys/class/pwm/pwmchip2
 proxy-miniature-pwm:2.pins = 0
 proxy-miniature-pwm:2.periodsNs = 50000
 proxy-miniature-pwm:2.dutyCyclesNs = 25000
+
+proxy-miniature-pwm:3.debug = 0
+proxy-miniature-pwm:3.systemPath = /sys/class/pwm/pwmchip4
+proxy-miniature-pwm:3.pins = 0
+proxy-miniature-pwm:3.periodsNs = 20000000
+proxy-miniature-pwm:3.dutyCyclesNs = 1650000
+
+proxy-miniature-sonar-pru.pruIndex = 0
+proxy-miniature-sonar-pru.debug = 1
+proxy-miniature-sonar-pru.firmwarePath = ../share/opendlv-proxy-miniature-sonar-pru/firmware/hcsr04.bin
 
 ###############################################################################
 ###############################################################################

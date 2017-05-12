@@ -58,6 +58,7 @@ Navigation::Navigation(const int &argc, char **argv)
     , nbrGridCols()
     , nbrGridRows()
     , nbrGridCells()
+    , m_sonarDistance()
 {
 }
 
@@ -92,8 +93,8 @@ void Navigation::setUp()
   for (auto pin : pwmPinsVector) {
     m_pwmOutputPins.push_back(std::stoi(pin));
   }
-  
-  std::string const outerWallsString = 
+
+  std::string const outerWallsString =
       kv.getValue<std::string>("logic-miniature-navigation.outer-walls");
   std::vector<data::environment::Point3> outerWallPoints = ReadPointString(outerWallsString);
   if (outerWallPoints.size() == 4) {
@@ -109,8 +110,8 @@ void Navigation::setUp()
   } else {
     std::cout << "Warning: Outer walls format error. (" << outerWallsString << ")" << std::endl;
   }
-  
-  std::string const innerWallsString = 
+
+  std::string const innerWallsString =
       kv.getValue<std::string>("logic-miniature-navigation.inner-walls");
   std::vector<data::environment::Point3> innerWallPoints = ReadPointString(innerWallsString);
   for (uint32_t i = 0; i < innerWallPoints.size(); i += 2) {
@@ -120,8 +121,8 @@ void Navigation::setUp()
       std::cout << "Inner wall - " << innerWall.toString() << std::endl;
     }
   }
-  
-  std::string const pointsOfInterestString = 
+
+  std::string const pointsOfInterestString =
       kv.getValue<std::string>("logic-miniature-navigation.points-of-interest");
   m_pointsOfInterest = ReadPointString(pointsOfInterestString);
   for (uint32_t i = 0; i < m_pointsOfInterest.size(); i++) {
@@ -193,6 +194,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
   std::string FSMstate = "wander";
   uint32_t pwmValueLeftWheel = 35000;
   uint32_t pwmValueRightWheel = 33500;
+  uint32_t pwmValueServo = 1650000;
   int leftForward = 1;
   int rightForward = 1;
   int counter = 0;
@@ -201,7 +203,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
   opendlv::proxy::ToggleRequest::ToggleState leftRotation_2;
   opendlv::proxy::ToggleRequest::ToggleState rightRotation_1;
   opendlv::proxy::ToggleRequest::ToggleState rightRotation_2;
-opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
+  opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
   while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
 
@@ -218,10 +220,10 @@ opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
 
     int leftWhiskerActive = m_gpioReadings[26];
     int rightWhiskerActive = m_gpioReadings[46];
-   
+
     std::cout << "leftWhiskerActive: " << leftWhiskerActive << std::endl;
     std::cout << "rightWhiskerActive: " << rightWhiskerActive << std::endl;
-    
+
     std::cout << "State: " << FSMstate << std::endl;
     std::cout << "Counter: " << counter << std::endl;
 
@@ -229,6 +231,7 @@ opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
     // default values for wander base state
     pwmValueLeftWheel = 35000;
     pwmValueRightWheel = 33500;
+    pwmValueServo = 1650000;
     leftForward = 1;
     rightForward = 1;
     blinkLED = 0;
@@ -246,6 +249,7 @@ opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
     }
 
     if (FSMstate == "backUp") {
+      pwmValueServo = 2200000;
       blinkLED = 1;
       leftForward = 0;
       rightForward = 0;
@@ -262,7 +266,7 @@ std::cout << "################################: " << std::endl;
 std::cout << "################################: " << std::endl;
 std::cout << "################################: " << std::endl;
 std::cout << "################################: " << std::endl;
-
+      pwmValueServo = 1100000;
       leftForward = 0;
       rightForward = 1;
       if (counter > 15) {
@@ -329,12 +333,22 @@ std::cout << "################################: " << std::endl;
     cLeftWheel.setSenderStamp(2);
     getConference().send(cLeftWheel);
 
+    opendlv::proxy::PwmRequest requestServo(0, pwmValueServo);
+    odcore::data::Container cServo(requestServo);
+    cServo.setSenderStamp(3);
+    getConference().send(cServo);
 
-      std::cout << "[" << getName() << "] Sending PwmRequest: "
+      std::cout << "[" << getName() << "] Sending PwmRequest chip0 (Right): "
           << requestRightWheel.toString() << std::endl;
 
-          std::cout << "[" << getName() << "] Sending PwmRequest: "
-              << requestLeftWheel.toString() << std::endl;
+      std::cout << "[" << getName() << "] Sending PwmRequest chip2 (Left): "
+          << requestLeftWheel.toString() << std::endl;
+
+      std::cout << "[" << getName() << "] Sending PwmRequest chip4: "
+          << requestServo.toString() << std::endl;
+
+          std::cout << "[" << getName() << "] Receiving distance: " << m_sonarDistance << std::endl;
+
   //  }
 
     ///// Example above.
@@ -440,16 +454,28 @@ void Navigation::nextContainer(odcore::data::Container &a_c)
 
     std::cout << "[" << getName() << "] Received a ToggleReading: "
         << reading.toString() << "." << std::endl;
+
+
+  } else if (dataType == opendlv::proxy::ProximityReading::ID()) {
+      opendlv::proxy::ProximityReading reading =
+        a_c.getData<opendlv::proxy::ProximityReading>();
+
+      double distance = reading.getProximity();
+
+      m_sonarDistance = distance;
+
+      std::cout << "[" << getName() << "] Received a ProximityReading: "
+          << reading.toString() << "." << std::endl;
   }
 }
 
 std::vector<data::environment::Point3> Navigation::ReadPointString(std::string const &a_pointsString) const
 {
   std::vector<data::environment::Point3> points;
-  std::vector<std::string> pointStringVector = 
+  std::vector<std::string> pointStringVector =
       odcore::strings::StringToolbox::split(a_pointsString, ';');
   for (auto pointString : pointStringVector) {
-    std::vector<std::string> coordinateVector = 
+    std::vector<std::string> coordinateVector =
         odcore::strings::StringToolbox::split(pointString, ',');
     if (coordinateVector.size() == 2) {
       double x = std::stod(coordinateVector[0]);

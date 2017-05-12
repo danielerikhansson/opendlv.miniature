@@ -65,6 +65,7 @@ class Navigation :
   int nbrGridCols;
   int nbrGridRows;
   int nbrGridCells;
+  double m_sonarDistance;
 };
 
 }
