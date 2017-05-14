@@ -19,6 +19,11 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <cmath>
+#include <limits>
+#include <cfloat>
+#include <numeric>
+
 
 #include <opendavinci/odcore/base/KeyValueConfiguration.h>
 #include <opendavinci/odcore/base/Lock.h>
@@ -54,7 +59,7 @@ Navigation::Navigation(const int &argc, char **argv)
     , arenaWidth()
     , arenaHeight()
     , arenaOffset()
-    , gridCellSize(4) //in decimeters?
+    , gridCellSize(2) //in decimeters?
     , nbrGridCols()
     , nbrGridRows()
     , nbrGridCells()
@@ -356,12 +361,12 @@ std::cout << "################################: " << std::endl;
     ///// TODO: Add proper behaviours.
     std::cout << "TODO: Add proper behaviour." << std::endl;
 
-
-
-    /* testing/debugging A* and transfomrations methods
-    data::environment::Point3 startPos = m_outerWalls[0].getA();
-    data::environment::Point3 goalPos = m_outerWalls[0].getB();
-    findPath(startPos, goalPos);
+    /* // testing A*
+    data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
+    data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
+    findPath(randStart, randTarget);
+    */
+    /* // testing/debugging transfomrations methods
     data::environment::Point3 tmp;
     tmp.setX(-4);
     tmp.setY(-2);
@@ -379,11 +384,84 @@ std::cout << "################################: " << std::endl;
 /* A* searh method
 In progress
 */
-void Navigation::findPath(data::environment::Point3 startPos, data::environment::Point3 goalPos){
+void Navigation::findPath(data::environment::Point3 startPos, data::environment::Point3 targetPos){
+
+  int startCell = posToCell(startPos);
+  int targetCell = posToCell(targetPos);
+  
   std::cout<< "in findPath" << std::endl;
   std::cout<< startPos.toString() << std::endl;
-  std::cout<< goalPos.toString() << std::endl;
-  std::cout<< m_pointsOfInterest[0].toString() << std::endl;
+  std::cout<< targetPos.toString() << std::endl;
+
+  std::vector<int> inOpenSet(nbrGridCells, 0);
+  inOpenSet[startCell] = 1;
+  std::vector<int> inClosedSet(nbrGridCells, 0);
+  std::vector<int> cameFrom(nbrGridCells, -1);
+  std::vector<double> gScore(nbrGridCells, DBL_MAX);
+  gScore[startCell] = 0;
+  std::vector<double> fScore(nbrGridCells, DBL_MAX);
+  fScore[startCell] = euclidianDistance(startCell, targetCell);
+
+  std::cout << inOpenSet[0] << std::endl;
+  std::cout << inClosedSet[0] << std::endl;
+  std::cout << cameFrom[0] << std::endl;
+  std::cout << gScore[0] << std::endl;
+
+  
+  int sumOpen = 1;
+  while (sumOpen>0) {
+    // find cell with lowest fScore
+    int currentCell = 0;
+    double currentScore = DBL_MAX;
+    for (int i = 0; i < nbrGridCells; i++) {
+      int iScore = fScore[i];
+      if (inOpenSet[i]==1 && iScore < currentScore) {
+        currentCell = i;
+        currentScore = iScore;
+      }
+    }
+    /* debug print statements
+    std::cout << "Original cell: " << startCell << std::endl;
+    std::cout << "Target cell: " << targetCell << std::endl;
+    std::cout << "Current cell: " << currentCell << std::endl;
+    std::cout << "NbrCells: " << nbrGridCells << std::endl;
+    std::cout << "nbrGridCols: " << nbrGridCols << std::endl;
+    */
+    // brake out if target's reached
+    if (currentCell==targetCell) break;
+
+    inOpenSet[currentCell] = 0;
+    inClosedSet[currentCell] = 1;
+    
+    // Add neighbours
+    std::vector<int> neighbours;
+    if (currentCell%nbrGridCols>0) neighbours.push_back(currentCell-1);    
+    if ((currentCell+1)%nbrGridCols>0) neighbours.push_back(currentCell+1);
+    if ((currentCell-nbrGridCols)>0) neighbours.push_back(currentCell-nbrGridCols);
+    if ((currentCell+nbrGridCols)<nbrGridCells) neighbours.push_back(currentCell+nbrGridCols);
+
+    int iNeighbour;
+    double tentativeScore = gScore[currentCell] + gridCellSize;
+    for (int i=0; i<(int)neighbours.size(); i++) {
+      iNeighbour = neighbours[i];
+      if (inClosedSet[iNeighbour]) continue;
+      if (!isFree(iNeighbour)) continue;
+      if (inOpenSet[iNeighbour]==0) {
+        inOpenSet[iNeighbour] = 1;
+      }
+      else if (tentativeScore >= gScore[iNeighbour]) {
+        continue;
+      }      
+      cameFrom[iNeighbour] = currentCell;
+      gScore[iNeighbour] = tentativeScore;
+      fScore[iNeighbour] = tentativeScore + euclidianDistance(iNeighbour, targetCell);
+    }
+
+    sumOpen = std::accumulate(inOpenSet.begin(), inOpenSet.end(), 0);
+  }
+  
+  std::cout << "Finished while-loop" << std::endl;
+
   //return data::environment::Point3 startPos;
 }
 
@@ -410,8 +488,20 @@ data::environment::Point3 Navigation::cellToPos(int cell){
   coordinates.setY(y+arenaOffset.getY()); //adjust for placement of arena
   return coordinates;
 }
-
-
+// Helper functions for distance
+double Navigation::euclidianDistance(data::environment::Point3 p1, data::environment::Point3 p2){
+  double squaredDist = pow(p1.getX()-p2.getX(), 2) + pow(p1.getY()-p2.getY(), 2);
+  return sqrt(squaredDist);
+}
+double Navigation::euclidianDistance(int cell1, int cell2){
+  data::environment::Point3 p1 = cellToPos(cell1);
+  data::environment::Point3 p2 = cellToPos(cell2);
+  return euclidianDistance(p1, p2);
+}
+// Helper function for availabilty
+bool Navigation::isFree(int cell) {
+ return cell>-1;
+}
 
 
 
