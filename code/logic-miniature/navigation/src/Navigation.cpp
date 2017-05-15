@@ -361,11 +361,11 @@ std::cout << "################################: " << std::endl;
     ///// TODO: Add proper behaviours.
     std::cout << "TODO: Add proper behaviour." << std::endl;
 
-    /* // testing A*
+    // testing A*
     data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
     data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
     findPath(randStart, randTarget);
-    */
+    
     /* // testing/debugging transfomrations methods
     data::environment::Point3 tmp;
     tmp.setX(-4);
@@ -389,9 +389,10 @@ void Navigation::findPath(data::environment::Point3 startPos, data::environment:
   int startCell = posToCell(startPos);
   int targetCell = posToCell(targetPos);
   
-  std::cout<< "in findPath" << std::endl;
-  std::cout<< startPos.toString() << std::endl;
-  std::cout<< targetPos.toString() << std::endl;
+  std::cout<< "Searching for path from " << startPos.toString();
+  std::cout<< " to " << targetPos.toString() << std::endl;
+  std::cout << "Start cell: " << startCell << std::endl;
+  std::cout << "Target cell: " << targetCell << std::endl;
 
   std::vector<int> inOpenSet(nbrGridCells, 0);
   inOpenSet[startCell] = 1;
@@ -402,14 +403,10 @@ void Navigation::findPath(data::environment::Point3 startPos, data::environment:
   std::vector<double> fScore(nbrGridCells, DBL_MAX);
   fScore[startCell] = euclidianDistance(startCell, targetCell);
 
-  std::cout << inOpenSet[0] << std::endl;
-  std::cout << inClosedSet[0] << std::endl;
-  std::cout << cameFrom[0] << std::endl;
-  std::cout << gScore[0] << std::endl;
-
-  
+  std::cout << "Running A* algorithm";
   int sumOpen = 1;
   while (sumOpen>0) {
+    std::cout << ".";
     // find cell with lowest fScore
     int currentCell = 0;
     double currentScore = DBL_MAX;
@@ -420,7 +417,7 @@ void Navigation::findPath(data::environment::Point3 startPos, data::environment:
         currentScore = iScore;
       }
     }
-    /* debug print statements
+    /*// debug print statements
     std::cout << "Original cell: " << startCell << std::endl;
     std::cout << "Target cell: " << targetCell << std::endl;
     std::cout << "Current cell: " << currentCell << std::endl;
@@ -460,7 +457,24 @@ void Navigation::findPath(data::environment::Point3 startPos, data::environment:
     sumOpen = std::accumulate(inOpenSet.begin(), inOpenSet.end(), 0);
   }
   
-  std::cout << "Finished while-loop" << std::endl;
+  //std::cout << "Finished while-loop" << std::endl;
+  
+
+  int iCell = targetCell;
+  std::vector<int> path;
+  path.push_back(iCell);
+  while (iCell != startCell) {
+    iCell = cameFrom[iCell];
+    path.push_back(iCell);
+  }
+  std::reverse(path.begin(), path.end());
+
+
+  std::cout << "path found" << std::endl;
+  //for (auto i:path) {
+  //  std::cout << i << std::endl;
+  //}
+
 
   //return data::environment::Point3 startPos;
 }
