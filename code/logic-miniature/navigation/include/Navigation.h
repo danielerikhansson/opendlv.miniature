@@ -50,6 +50,8 @@ class Navigation :
   double euclidianDistance(data::environment::Point3, data::environment::Point3);
   double euclidianDistance(int, int);
   bool isFree(int);
+  float minDistance(data::environment::Line, data::environment::Point3);
+  float dotProduct(data::environment::Point3, data::environment::Point3);
   virtual odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
   std::vector<data::environment::Point3> ReadPointString(std::string const &) const;
   //std::vector<data::environment::Point3> findPath(data::environment::Point3 &start, data::environment::Point3 &goal);

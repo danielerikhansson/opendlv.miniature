@@ -362,9 +362,9 @@ std::cout << "################################: " << std::endl;
     std::cout << "TODO: Add proper behaviour." << std::endl;
 
     // testing A*
-    data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
-    data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
-    findPath(randStart, randTarget);
+    //data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
+    //data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
+    //findPath(randStart, randTarget);
     
     /* // testing/debugging transfomrations methods
     data::environment::Point3 tmp;
@@ -471,9 +471,10 @@ void Navigation::findPath(data::environment::Point3 startPos, data::environment:
 
 
   std::cout << "path found" << std::endl;
-  //for (auto i:path) {
-  //  std::cout << i << std::endl;
-  //}
+  for (auto i:path) {
+    std::cout << cellToPos(i).toString() << " --> ";
+  }
+  std::cout << std::endl;
 
 
   //return data::environment::Point3 startPos;
@@ -504,7 +505,7 @@ data::environment::Point3 Navigation::cellToPos(int cell){
 }
 // Helper functions for distance
 double Navigation::euclidianDistance(data::environment::Point3 p1, data::environment::Point3 p2){
-  double squaredDist = pow(p1.getX()-p2.getX(), 2) + pow(p1.getY()-p2.getY(), 2);
+  double squaredDist = pow(p1.getX()-p2.getX(), 2) + pow(p1.getY()-p2.getY(), 2) + pow(p1.getZ()-p2.getZ(), 2);
   return sqrt(squaredDist);
 }
 double Navigation::euclidianDistance(int cell1, int cell2){
@@ -512,9 +513,40 @@ double Navigation::euclidianDistance(int cell1, int cell2){
   data::environment::Point3 p2 = cellToPos(cell2);
   return euclidianDistance(p1, p2);
 }
-// Helper function for availabilty
+float Navigation::minDistance(data::environment::Line lineSegment, data::environment::Point3 p) {
+  // Return minimum distance between lineSegment and point p
+
+  data::environment::Point3 a = lineSegment.getA();
+  data::environment::Point3 b = lineSegment.getB();
+  float l2 = euclidianDistance(a, b);
+  l2 = l2*l2;
+  double t = dotProduct(p - a, b - a) / l2;
+  if (t<0) t=0;
+  if (t>1) t=1;
+  data::environment::Point3 projection =  (b - a)*t + a;  // Projection falls on the segment
+  return euclidianDistance(p, projection);
+}
+float Navigation::dotProduct(data::environment::Point3 vec1, data::environment::Point3 vec2) {
+  return vec1.getX()*vec2.getX() + vec1.getY()*vec2.getY() + vec1.getZ()*vec2.getZ();
+}
+// Helper function for availabilty of cell
 bool Navigation::isFree(int cell) {
- return cell>-1;
+  data::environment::Point3 cellPos = cellToPos(cell);
+  for (int i=0; i<(int)m_innerWalls.size(); i++) {
+    double distanceToWall = minDistance(m_innerWalls[i], cellPos);
+    if (distanceToWall < gridCellSize) {
+      std::cout << "|";
+      return false;
+    }
+  }
+  for (int i=0; i<(int)m_innerWalls.size(); i++) {
+    double distanceToWall = minDistance(m_innerWalls[i], cellPos);
+    if (distanceToWall < gridCellSize) {
+      std::cout << "|";
+      return false;
+    }
+  }
+  return true;
 }
 
 
