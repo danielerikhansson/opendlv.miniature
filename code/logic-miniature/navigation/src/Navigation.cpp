@@ -232,6 +232,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     std::cout << "State: " << FSMstate << std::endl;
     std::cout << "Counter: " << counter << std::endl;
 
+    // TODO: Add path -> Wheelspeeds -> pwm code
 
     // default values for wander base state
     pwmValueLeftWheel = 35000;
@@ -365,7 +366,7 @@ std::cout << "################################: " << std::endl;
     //data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
     //data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
     //findPath(randStart, randTarget);
-    
+
     /* // testing/debugging transfomrations methods
     data::environment::Point3 tmp;
     tmp.setX(-4);
@@ -388,7 +389,7 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
 
   int startCell = posToCell(startPos);
   int targetCell = posToCell(targetPos);
-  
+
   std::cout<< "Searching for path from " << startPos.toString();
   std::cout<< " to " << targetPos.toString() << std::endl;
   std::cout << "Start cell: " << startCell << std::endl;
@@ -429,10 +430,10 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
 
     inOpenSet[currentCell] = 0;
     inClosedSet[currentCell] = 1;
-    
+
     // Add neighbours
     std::vector<int> neighbours;
-    if (currentCell%nbrGridCols>0) neighbours.push_back(currentCell-1);    
+    if (currentCell%nbrGridCols>0) neighbours.push_back(currentCell-1);
     if ((currentCell+1)%nbrGridCols>0) neighbours.push_back(currentCell+1);
     if ((currentCell-nbrGridCols)>0) neighbours.push_back(currentCell-nbrGridCols);
     if ((currentCell+nbrGridCols)<nbrGridCells) neighbours.push_back(currentCell+nbrGridCols);
@@ -448,7 +449,7 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
       }
       else if (tentativeScore >= gScore[iNeighbour]) {
         continue;
-      }      
+      }
       cameFrom[iNeighbour] = currentCell;
       gScore[iNeighbour] = tentativeScore;
       fScore[iNeighbour] = tentativeScore + euclidianDistance(iNeighbour, targetCell);
@@ -456,9 +457,9 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
 
     sumOpen = std::accumulate(inOpenSet.begin(), inOpenSet.end(), 0);
   }
-  
+
   //std::cout << "Finished while-loop" << std::endl;
-  
+
 
   int iCell = targetCell;
   std::vector<int> path;
@@ -496,7 +497,7 @@ int Navigation::posToCell(data::environment::Point3 position){
 data::environment::Point3 Navigation::cellToPos(int cell){
   int yRow = floor(cell/nbrGridCols);
   double y = yRow*gridCellSize;
-  double x = (cell%nbrGridCols)*gridCellSize; 
+  double x = (cell%nbrGridCols)*gridCellSize;
   data::environment::Point3 coordinates;
   coordinates.setX(x+arenaOffset.getX()); //adjust for placement of arena
   coordinates.setY(y+arenaOffset.getY()); //adjust for placement of arena
@@ -528,6 +529,14 @@ float Navigation::minDistance(data::environment::Line lineSegment, data::environ
 float Navigation::dotProduct(data::environment::Point3 vec1, data::environment::Point3 vec2) {
   return vec1.getX()*vec2.getX() + vec1.getY()*vec2.getY() + vec1.getZ()*vec2.getZ();
 }
+data::environment::Point3 Navigation::crossProduct(data::environment::Point3 vec1, data::environment vec2)
+{
+    double x = vec1.getY() * vec2.getZ() - vec1.getZ() * vec2.getY();
+    double y = vec1.getZ() * vec2.getX() - vec1.getX() * vec2.getZ();
+    double z = vec1.getX() * vec2.getY() - vec1.getY() * vec2.getX();
+
+    return data::environment::Point3(x, y, z);
+}
 // Helper function for availabilty of cell
 bool Navigation::isFree(int cell) {
   data::environment::Point3 cellPos = cellToPos(cell);
@@ -548,7 +557,80 @@ bool Navigation::isFree(int cell) {
   return true;
 }
 
+/*
+    Method that takes a path and returns wheel speeds to incrementally follow
+    the path.
+*/
+void Navigation::calculateWheelSpeeds(std::vector path, *double wheelSpeeds)
+{
 
+    data::environment::Point3 carPosition; // TEMP, should probably be member
+    data::environment::Point3 carHeading; // TEMP, should probably be member
+
+    int currentNodeIndex = getNearesCell(carPosition); // TRIM vector?
+
+    data::environment::Point3 headToPosition = cellToPos(path[currentNodeIndex]) - carPosition;
+    data::environment::Point3 headToTangent = data::environment::Point3(0,0,0);
+    // Look ahead (if not possible find the goal)
+
+    int lookahead = 2;
+    if (currentNodeIndex + lookahead < path.size())
+    {
+        headToPosition = cellToPos(path[currentNodeIndex + lookahead]);
+        if (currentNodeIndex + lookahead + 1 < path.size())
+        {
+            headToTangent = cellToPos(path[currentNodeIndex + lookahead + 1]) - headToPosition;
+        }
+    }
+    else if (currentNodeIndex + lookahead -1 < path.size())
+    {
+        headToPosition = cellToPos(path[currentNodeIndex + lookahead - 1]);
+    }
+    else
+    {
+        // CHECK IF CLOSE ENOUGH TO CONSIDERED FINISHED, PERHAPS DO THIS SOMEWHERE ELSE
+        // LOWER SPEED
+    }
+
+    carHeading.normalize();
+    headToPosition.normalize();
+
+    double proportionality = 0.5;
+    double error = crossProduct(carHeading, headToPosition).getZ() * proportionality;
+
+
+    double vL = (1 + error) / 2;
+    double vR = (1 - error) / 2;
+
+    wheelSpeeds[0] = vL;
+    wheelSpeeds[1] = vR;
+
+}
+
+/*
+    Finds the index of nearst point in path to another path
+*/
+int Navigation::getNearestCell(data::environment::Point3 point, std::vector<int> path)
+{
+    if (path.size() == 0) { // Should never happen!
+        return 0;
+    }
+
+    int bestMatchIndex = 0;
+    double bestMatchLength = euclidianDistance(point, cellToPos(path[0]);
+
+    for (int i=1; i<(int)path.size(); i++)
+    {
+        double length = euclidianDistance(point, cellToPos(path[i]));
+        if ( length < bestMatchLength)
+        {
+            bestMatchIndex = i;
+            bestMatchLength = length;
+        }
+    }
+
+    return bestMatchIndex;
+}
 
 /*
   This method receives messages from all other modules (in the same conference
