@@ -44,7 +44,7 @@ class Navigation :
  private:
   void setUp();
   void tearDown();
-  void findPath(data::environment::Point3, data::environment::Point3);
+  std::vector<int> findPath(data::environment::Point3, data::environment::Point3);
   int posToCell(data::environment::Point3);
   data::environment::Point3 cellToPos(int);
   double euclidianDistance(data::environment::Point3, data::environment::Point3);

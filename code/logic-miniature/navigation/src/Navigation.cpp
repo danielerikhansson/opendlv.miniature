@@ -384,7 +384,7 @@ std::cout << "################################: " << std::endl;
 /* A* searh method
 In progress
 */
-void Navigation::findPath(data::environment::Point3 startPos, data::environment::Point3 targetPos){
+std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::environment::Point3 targetPos){
 
   int startCell = posToCell(startPos);
   int targetCell = posToCell(targetPos);
@@ -476,8 +476,7 @@ void Navigation::findPath(data::environment::Point3 startPos, data::environment:
   }
   std::cout << std::endl;
 
-
-  //return data::environment::Point3 startPos;
+  return path;
 }
 
 
