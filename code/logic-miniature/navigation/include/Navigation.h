@@ -32,7 +32,7 @@ namespace opendlv {
 namespace logic {
 namespace miniature {
 
-class Navigation : 
+class Navigation :
   public odcore::base::module::TimeTriggeredConferenceClientModule {
  public:
   Navigation(const int &, char **);
@@ -54,6 +54,9 @@ class Navigation :
   float dotProduct(data::environment::Point3, data::environment::Point3);
   virtual odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
   std::vector<data::environment::Point3> ReadPointString(std::string const &) const;
+  void calculateWheelSpeeds(std::vector<int>, double);
+  int getNearestCell(data::environment::Point3,std::vector<int>);
+  data::environment::Point3 crossProduct(data::environment::Point3,data::environment::Point3);
   //std::vector<data::environment::Point3> findPath(data::environment::Point3 &start, data::environment::Point3 &goal);
   odcore::base::Mutex m_mutex;
   std::vector<data::environment::Line> m_outerWalls;

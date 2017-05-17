@@ -529,7 +529,7 @@ float Navigation::minDistance(data::environment::Line lineSegment, data::environ
 float Navigation::dotProduct(data::environment::Point3 vec1, data::environment::Point3 vec2) {
   return vec1.getX()*vec2.getX() + vec1.getY()*vec2.getY() + vec1.getZ()*vec2.getZ();
 }
-data::environment::Point3 Navigation::crossProduct(data::environment::Point3 vec1, data::environment vec2)
+data::environment::Point3 Navigation::crossProduct(data::environment::Point3 vec1, data::environment::Point3 vec2)
 {
     double x = vec1.getY() * vec2.getZ() - vec1.getZ() * vec2.getY();
     double y = vec1.getZ() * vec2.getX() - vec1.getX() * vec2.getZ();
@@ -561,28 +561,32 @@ bool Navigation::isFree(int cell) {
     Method that takes a path and returns wheel speeds to incrementally follow
     the path.
 */
-void Navigation::calculateWheelSpeeds(std::vector path, *double wheelSpeeds)
+
+//vhy void, why not return the wheel speeds
+void Navigation::calculateWheelSpeeds(std::vector<int> path, double wheelSpeeds)
 {
 
     data::environment::Point3 carPosition; // TEMP, should probably be member
     data::environment::Point3 carHeading; // TEMP, should probably be member
 
-    int currentNodeIndex = getNearesCell(carPosition); // TRIM vector?
+    int currentNodeIndex = getNearestCell(carPosition,path); // TRIM vector?
 
+    //current nodeIndex can be the previously passed node (behind the robot)!
     data::environment::Point3 headToPosition = cellToPos(path[currentNodeIndex]) - carPosition;
     data::environment::Point3 headToTangent = data::environment::Point3(0,0,0);
     // Look ahead (if not possible find the goal)
 
     int lookahead = 2;
-    if (currentNodeIndex + lookahead < path.size())
+    int pathSize = path.size();
+    if ( currentNodeIndex + lookahead < pathSize)
     {
         headToPosition = cellToPos(path[currentNodeIndex + lookahead]);
-        if (currentNodeIndex + lookahead + 1 < path.size())
+        if ( currentNodeIndex + lookahead + 1 < pathSize)
         {
             headToTangent = cellToPos(path[currentNodeIndex + lookahead + 1]) - headToPosition;
         }
     }
-    else if (currentNodeIndex + lookahead -1 < path.size())
+    else if ( currentNodeIndex + lookahead -1 < pathSize)
     {
         headToPosition = cellToPos(path[currentNodeIndex + lookahead - 1]);
     }
@@ -598,18 +602,21 @@ void Navigation::calculateWheelSpeeds(std::vector path, *double wheelSpeeds)
     double proportionality = 0.5;
     double error = crossProduct(carHeading, headToPosition).getZ() * proportionality;
 
-
     double vL = (1 + error) / 2;
     double vR = (1 - error) / 2;
 
-    wheelSpeeds[0] = vL;
-    wheelSpeeds[1] = vR;
+    //just to compile
+    wheelSpeeds=wheelSpeeds+1+vL+vR;
+    //wheel speed not vecotor?
+    //wheelSpeeds[0] = vL;
+    //wheelSpeeds[1] = vR;
 
 }
 
 /*
     Finds the index of nearst point in path to another path
 */
+//why not simply return the point from the path that is closest?
 int Navigation::getNearestCell(data::environment::Point3 point, std::vector<int> path)
 {
     if (path.size() == 0) { // Should never happen!
@@ -617,7 +624,7 @@ int Navigation::getNearestCell(data::environment::Point3 point, std::vector<int>
     }
 
     int bestMatchIndex = 0;
-    double bestMatchLength = euclidianDistance(point, cellToPos(path[0]);
+    double bestMatchLength = euclidianDistance(point, cellToPos(path[0]));
 
     for (int i=1; i<(int)path.size(); i++)
     {
