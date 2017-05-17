@@ -64,6 +64,7 @@ Navigation::Navigation(const int &argc, char **argv)
     , nbrGridRows()
     , nbrGridCells()
     , m_sonarDistance()
+    , asPath()
 {
 }
 
@@ -362,21 +363,46 @@ std::cout << "################################: " << std::endl;
     std::cout << "TODO: Add proper behaviour." << std::endl;
 
     // testing A*
-    //data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
-    //data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
-    //findPath(randStart, randTarget);
-    
-    /* // testing/debugging transfomrations methods
-    data::environment::Point3 tmp;
-    tmp.setX(-4);
-    tmp.setY(-2);
-    int tmpCell = posToCell(tmp);
-    std::cout << "Test position:" << tmp.toString() << std::endl;
-    std::cout << "Corresponding cell:" << tmpCell << std::endl;
-    std::cout << "Transformed back to position:" << cellToPos(tmpCell).toString() << std::endl;
-    */
+    data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
+    data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
+    //data::environment::Point3 randStart = cellToPos(100);
+    //data::environment::Point3 randTarget = cellToPos(120);
+    std::cout << "Start point: " << randStart.toString() << "End point: " << randTarget.toString() << std::endl;
+
+
+    asPath = findPath(randStart, randTarget);
+    pathToString(asPath);
+
   }
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
+}
+
+
+void Navigation::pathToString(std::vector<int> path) {
+  for(auto i:path){
+    std::cout << " --> " << i;
+  }
+  std::cout << endl;
+
+  for (int i = 0; i < nbrGridCells; i++){
+      std::vector<int>::iterator it;
+
+      it = find (path.begin(), path.end(), i);
+      if (it != path.end()){
+        std::cout << "#";
+      } else if(isFree(i)) {
+        std::cout << "0";
+      } else {
+        std::cout << "X";
+      }
+
+      if ( ((i+1) % nbrGridCols) == 0 ) {
+        std::cout << endl;
+      }
+
+
+
+  }
 }
 
 
@@ -388,7 +414,7 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
 
   int startCell = posToCell(startPos);
   int targetCell = posToCell(targetPos);
-  
+
   std::cout<< "Searching for path from " << startPos.toString();
   std::cout<< " to " << targetPos.toString() << std::endl;
   std::cout << "Start cell: " << startCell << std::endl;
@@ -429,10 +455,10 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
 
     inOpenSet[currentCell] = 0;
     inClosedSet[currentCell] = 1;
-    
+
     // Add neighbours
     std::vector<int> neighbours;
-    if (currentCell%nbrGridCols>0) neighbours.push_back(currentCell-1);    
+    if (currentCell%nbrGridCols>0) neighbours.push_back(currentCell-1);
     if ((currentCell+1)%nbrGridCols>0) neighbours.push_back(currentCell+1);
     if ((currentCell-nbrGridCols)>0) neighbours.push_back(currentCell-nbrGridCols);
     if ((currentCell+nbrGridCols)<nbrGridCells) neighbours.push_back(currentCell+nbrGridCols);
@@ -448,7 +474,7 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
       }
       else if (tentativeScore >= gScore[iNeighbour]) {
         continue;
-      }      
+      }
       cameFrom[iNeighbour] = currentCell;
       gScore[iNeighbour] = tentativeScore;
       fScore[iNeighbour] = tentativeScore + euclidianDistance(iNeighbour, targetCell);
@@ -456,9 +482,9 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
 
     sumOpen = std::accumulate(inOpenSet.begin(), inOpenSet.end(), 0);
   }
-  
+
   //std::cout << "Finished while-loop" << std::endl;
-  
+
 
   int iCell = targetCell;
   std::vector<int> path;
@@ -475,6 +501,8 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
     std::cout << cellToPos(i).toString() << " --> ";
   }
   std::cout << std::endl;
+
+
 
   return path;
 }
@@ -496,7 +524,7 @@ int Navigation::posToCell(data::environment::Point3 position){
 data::environment::Point3 Navigation::cellToPos(int cell){
   int yRow = floor(cell/nbrGridCols);
   double y = yRow*gridCellSize;
-  double x = (cell%nbrGridCols)*gridCellSize; 
+  double x = (cell%nbrGridCols)*gridCellSize;
   data::environment::Point3 coordinates;
   coordinates.setX(x+arenaOffset.getX()); //adjust for placement of arena
   coordinates.setY(y+arenaOffset.getY()); //adjust for placement of arena
@@ -534,14 +562,14 @@ bool Navigation::isFree(int cell) {
   for (int i=0; i<(int)m_innerWalls.size(); i++) {
     double distanceToWall = minDistance(m_innerWalls[i], cellPos);
     if (distanceToWall < gridCellSize) {
-      std::cout << "|";
+      //std::cout << "|";
       return false;
     }
   }
   for (int i=0; i<(int)m_innerWalls.size(); i++) {
     double distanceToWall = minDistance(m_innerWalls[i], cellPos);
     if (distanceToWall < gridCellSize) {
-      std::cout << "|";
+      //std::cout << "|";
       return false;
     }
   }

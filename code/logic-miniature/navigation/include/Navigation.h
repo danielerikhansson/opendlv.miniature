@@ -32,7 +32,7 @@ namespace opendlv {
 namespace logic {
 namespace miniature {
 
-class Navigation : 
+class Navigation :
   public odcore::base::module::TimeTriggeredConferenceClientModule {
  public:
   Navigation(const int &, char **);
@@ -44,6 +44,7 @@ class Navigation :
  private:
   void setUp();
   void tearDown();
+  void pathToString(std::vector<int> path);
   std::vector<int> findPath(data::environment::Point3, data::environment::Point3);
   int posToCell(data::environment::Point3);
   data::environment::Point3 cellToPos(int);
@@ -71,6 +72,8 @@ class Navigation :
   int nbrGridRows;
   int nbrGridCells;
   double m_sonarDistance;
+  std::vector<int> asPath;
+
 };
 
 }
