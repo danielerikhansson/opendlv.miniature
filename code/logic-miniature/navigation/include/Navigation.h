@@ -54,7 +54,7 @@ class Navigation :
   float dotProduct(data::environment::Point3, data::environment::Point3);
   virtual odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
   std::vector<data::environment::Point3> ReadPointString(std::string const &) const;
-  void calculateWheelSpeeds(std::vector<int>, double);
+  void updateWheelSpeeds(std::vector<int>);
   int getNearestCell(data::environment::Point3,std::vector<int>);
   data::environment::Point3 crossProduct(data::environment::Point3,data::environment::Point3);
   //std::vector<data::environment::Point3> findPath(data::environment::Point3 &start, data::environment::Point3 &goal);
@@ -74,6 +74,9 @@ class Navigation :
   int nbrGridRows;
   int nbrGridCells;
   double m_sonarDistance;
+  uint32_t pwmValueLeftWheel;
+  uint32_t pwmValueRightWheel;
+
 };
 
 }

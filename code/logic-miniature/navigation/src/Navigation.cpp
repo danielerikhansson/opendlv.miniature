@@ -64,6 +64,8 @@ Navigation::Navigation(const int &argc, char **argv)
     , nbrGridRows()
     , nbrGridCells()
     , m_sonarDistance()
+    , pwmValueLeftWheel()
+    , pwmValueRightWheel()
 {
 }
 
@@ -197,8 +199,8 @@ void Navigation::tearDown()
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 {
   std::string FSMstate = "wander";
-  uint32_t pwmValueLeftWheel = 35000;
-  uint32_t pwmValueRightWheel = 33500;
+  pwmValueLeftWheel = 35000;
+  pwmValueRightWheel = 33500;
   uint32_t pwmValueServo = 1650000;
   int leftForward = 1;
   int rightForward = 1;
@@ -237,21 +239,22 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     // default values for wander base state
     pwmValueLeftWheel = 35000;
     pwmValueRightWheel = 33500;
+    //updateWheelSpeeds();
     pwmValueServo = 1650000;
     leftForward = 1;
     rightForward = 1;
     blinkLED = 0;
 
     if (leftWhiskerActive && rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
-     FSMstate = "backUp";
+        FSMstate = "backUp";
     }
     else if (leftWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
      // pwmValueRightWheel = 10000;
-	FSMstate = "backUp";
+	    FSMstate = "backUp";
     }
     else if (rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
      // pwmValueLeftWheel = 10000;
-	FSMstate = "backUp";
+	    FSMstate = "backUp";
     }
 
     if (FSMstate == "backUp") {
@@ -266,20 +269,20 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       counter++;
     }
     if (FSMstate == "rotate") {
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-      pwmValueServo = 1100000;
-      leftForward = 0;
-      rightForward = 1;
-      if (counter > 15) {
-        FSMstate = "wander";
-        counter = 0;
-      }
-      counter++;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        pwmValueServo = 1100000;
+        leftForward = 0;
+        rightForward = 1;
+        if (counter > 15) {
+            FSMstate = "wander";
+            counter = 0;
+        }
+        counter++;
     }
 
 
@@ -563,9 +566,8 @@ bool Navigation::isFree(int cell) {
 */
 
 //vhy void, why not return the wheel speeds
-void Navigation::calculateWheelSpeeds(std::vector<int> path, double wheelSpeeds)
+void Navigation::updateWheelSpeeds(std::vector<int> path)
 {
-
     data::environment::Point3 carPosition; // TEMP, should probably be member
     data::environment::Point3 carHeading; // TEMP, should probably be member
 
@@ -605,11 +607,8 @@ void Navigation::calculateWheelSpeeds(std::vector<int> path, double wheelSpeeds)
     double vL = (1 + error) / 2;
     double vR = (1 - error) / 2;
 
-    //just to compile
-    wheelSpeeds=wheelSpeeds+1+vL+vR;
-    //wheel speed not vecotor?
-    //wheelSpeeds[0] = vL;
-    //wheelSpeeds[1] = vR;
+    pwmValueLeftWheel = 25000 + 10000 * vL;
+    pwmValueRightWheel = 23500 + 10000 * vR;
 
 }
 
