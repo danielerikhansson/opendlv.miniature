@@ -65,6 +65,8 @@ Navigation::Navigation(const int &argc, char **argv)
     , nbrGridCells()
     , m_sonarDistance()
     , asPath()
+    , pwmValueLeftWheel()
+    , pwmValueRightWheel()
 {
 }
 
@@ -198,8 +200,8 @@ void Navigation::tearDown()
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 {
   std::string FSMstate = "wander";
-  uint32_t pwmValueLeftWheel = 35000;
-  uint32_t pwmValueRightWheel = 33500;
+  pwmValueLeftWheel = 35000;
+  pwmValueRightWheel = 33500;
   uint32_t pwmValueServo = 1650000;
   int leftForward = 1;
   int rightForward = 1;
@@ -233,25 +235,27 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     std::cout << "State: " << FSMstate << std::endl;
     std::cout << "Counter: " << counter << std::endl;
 
+    // TODO: Add path -> Wheelspeeds -> pwm code
 
     // default values for wander base state
     pwmValueLeftWheel = 35000;
     pwmValueRightWheel = 33500;
+    //updateWheelSpeeds();
     pwmValueServo = 1650000;
     leftForward = 1;
     rightForward = 1;
     blinkLED = 0;
 
     if (leftWhiskerActive && rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
-     FSMstate = "backUp";
+        FSMstate = "backUp";
     }
     else if (leftWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
      // pwmValueRightWheel = 10000;
-	FSMstate = "backUp";
+	    FSMstate = "backUp";
     }
     else if (rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
      // pwmValueLeftWheel = 10000;
-	FSMstate = "backUp";
+	    FSMstate = "backUp";
     }
 
     if (FSMstate == "backUp") {
@@ -266,20 +270,20 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       counter++;
     }
     if (FSMstate == "rotate") {
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-std::cout << "################################: " << std::endl;
-      pwmValueServo = 1100000;
-      leftForward = 0;
-      rightForward = 1;
-      if (counter > 15) {
-        FSMstate = "wander";
-        counter = 0;
-      }
-      counter++;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        std::cout << "################################: " << std::endl;
+        pwmValueServo = 1100000;
+        leftForward = 0;
+        rightForward = 1;
+        if (counter > 15) {
+            FSMstate = "wander";
+            counter = 0;
+        }
+        counter++;
     }
 
 
@@ -363,6 +367,7 @@ std::cout << "################################: " << std::endl;
     std::cout << "TODO: Add proper behaviour." << std::endl;
 
     // testing A*
+
     data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
     data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
     //data::environment::Point3 randStart = cellToPos(100);
@@ -372,6 +377,7 @@ std::cout << "################################: " << std::endl;
 
     asPath = findPath(randStart, randTarget);
     pathToString(asPath);
+
 
   }
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
@@ -556,6 +562,14 @@ float Navigation::minDistance(data::environment::Line lineSegment, data::environ
 float Navigation::dotProduct(data::environment::Point3 vec1, data::environment::Point3 vec2) {
   return vec1.getX()*vec2.getX() + vec1.getY()*vec2.getY() + vec1.getZ()*vec2.getZ();
 }
+data::environment::Point3 Navigation::crossProduct(data::environment::Point3 vec1, data::environment::Point3 vec2)
+{
+    double x = vec1.getY() * vec2.getZ() - vec1.getZ() * vec2.getY();
+    double y = vec1.getZ() * vec2.getX() - vec1.getX() * vec2.getZ();
+    double z = vec1.getX() * vec2.getY() - vec1.getY() * vec2.getX();
+
+    return data::environment::Point3(x, y, z);
+}
 // Helper function for availabilty of cell
 bool Navigation::isFree(int cell) {
   data::environment::Point3 cellPos = cellToPos(cell);
@@ -576,7 +590,83 @@ bool Navigation::isFree(int cell) {
   return true;
 }
 
+/*
+    Method that takes a path and returns wheel speeds to incrementally follow
+    the path.
+*/
 
+//vhy void, why not return the wheel speeds
+void Navigation::updateWheelSpeeds(std::vector<int> path)
+{
+    data::environment::Point3 carPosition; // TEMP, should probably be member
+    data::environment::Point3 carHeading; // TEMP, should probably be member
+
+    int currentNodeIndex = getNearestCell(carPosition,path); // TRIM vector?
+
+    //current nodeIndex can be the previously passed node (behind the robot)!
+    data::environment::Point3 headToPosition = cellToPos(path[currentNodeIndex]) - carPosition;
+    data::environment::Point3 headToTangent = data::environment::Point3(0,0,0);
+    // Look ahead (if not possible find the goal)
+
+    int lookahead = 2;
+    int pathSize = path.size();
+    if ( currentNodeIndex + lookahead < pathSize)
+    {
+        headToPosition = cellToPos(path[currentNodeIndex + lookahead]);
+        if ( currentNodeIndex + lookahead + 1 < pathSize)
+        {
+            headToTangent = cellToPos(path[currentNodeIndex + lookahead + 1]) - headToPosition;
+        }
+    }
+    else if ( currentNodeIndex + lookahead -1 < pathSize)
+    {
+        headToPosition = cellToPos(path[currentNodeIndex + lookahead - 1]);
+    }
+    else
+    {
+        // CHECK IF CLOSE ENOUGH TO CONSIDERED FINISHED, PERHAPS DO THIS SOMEWHERE ELSE
+        // LOWER SPEED
+    }
+
+    carHeading.normalize();
+    headToPosition.normalize();
+
+    double proportionality = 0.5;
+    double error = crossProduct(carHeading, headToPosition).getZ() * proportionality;
+
+    double vL = (1 + error) / 2;
+    double vR = (1 - error) / 2;
+
+    pwmValueLeftWheel = 25000 + 10000 * vL;
+    pwmValueRightWheel = 23500 + 10000 * vR;
+
+}
+
+/*
+    Finds the index of nearst point in path to another path
+*/
+//why not simply return the point from the path that is closest?
+int Navigation::getNearestCell(data::environment::Point3 point, std::vector<int> path)
+{
+    if (path.size() == 0) { // Should never happen!
+        return 0;
+    }
+
+    int bestMatchIndex = 0;
+    double bestMatchLength = euclidianDistance(point, cellToPos(path[0]));
+
+    for (int i=1; i<(int)path.size(); i++)
+    {
+        double length = euclidianDistance(point, cellToPos(path[i]));
+        if ( length < bestMatchLength)
+        {
+            bestMatchIndex = i;
+            bestMatchLength = length;
+        }
+    }
+
+    return bestMatchIndex;
+}
 
 /*
   This method receives messages from all other modules (in the same conference
