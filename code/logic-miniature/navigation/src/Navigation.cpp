@@ -67,6 +67,9 @@ Navigation::Navigation(const int &argc, char **argv)
     , asPath()
     , pwmValueLeftWheel()
     , pwmValueRightWheel()
+    , m_positionX()
+    , m_positionY()
+    , m_positionYaw()
 {
 }
 
@@ -212,8 +215,22 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
   opendlv::proxy::ToggleRequest::ToggleState rightRotation_1;
   opendlv::proxy::ToggleRequest::ToggleState rightRotation_2;
   opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
+
+
+
+  data::environment::Point3 randStart = data::environment::Point3(m_positionX, m_positionY,0);
+  data::environment::Point3 randTarget = cellToPos(200);
+  //std::cout << "Start point: " << randStart.toString() << "End point: " << randTarget.toString() << std::endl;
+
+
+  asPath = findPath(randStart, randTarget);
+  pathToString(asPath);
+
+
   while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
+
+    std::cout << "position: " << m_positionX << " : " << m_positionY << " : " << m_positionYaw << endl;
 
     // The mutex is required since 'body' and 'nextContainer' competes by
     // reading and writing to the class global maps, see also 'nextContainer'.
@@ -238,9 +255,11 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     // TODO: Add path -> Wheelspeeds -> pwm code
 
     // default values for wander base state
-    pwmValueLeftWheel = 35000;
-    pwmValueRightWheel = 33500;
-    //updateWheelSpeeds();
+    //pwmValueLeftWheel = 35000;
+    //pwmValueRightWheel = 33500;
+
+    updateWheelSpeeds(asPath);
+
     pwmValueServo = 1650000;
     leftForward = 1;
     rightForward = 1;
@@ -359,24 +378,20 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 
           std::cout << "[" << getName() << "] Receiving distance: " << m_sonarDistance << std::endl;
 
-  //  }
 
-    ///// Example above.
 
-    ///// TODO: Add proper behaviours.
-    std::cout << "TODO: Add proper behaviour." << std::endl;
 
     // testing A*
 
-    data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
-    data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
+    //data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
+    //data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
     //data::environment::Point3 randStart = cellToPos(100);
     //data::environment::Point3 randTarget = cellToPos(120);
-    std::cout << "Start point: " << randStart.toString() << "End point: " << randTarget.toString() << std::endl;
+    //std::cout << "Start point: " << randStart.toString() << "End point: " << randTarget.toString() << std::endl;
 
 
-    asPath = findPath(randStart, randTarget);
-    pathToString(asPath);
+  //  asPath = findPath(randStart, randTarget);
+  //  pathToString(asPath);
 
 
   }
@@ -598,8 +613,8 @@ bool Navigation::isFree(int cell) {
 //vhy void, why not return the wheel speeds
 void Navigation::updateWheelSpeeds(std::vector<int> path)
 {
-    data::environment::Point3 carPosition; // TEMP, should probably be member
-    data::environment::Point3 carHeading; // TEMP, should probably be member
+    data::environment::Point3 carPosition = data::environment::Point3(m_positionX,m_positionY,0); // TEMP, should probably be member
+    data::environment::Point3 carHeading = data::environment::Point3(cos(m_positionYaw),sin(m_positionYaw),0);; // TEMP, should probably be member
 
     int currentNodeIndex = getNearestCell(carPosition,path); // TRIM vector?
 
@@ -637,8 +652,8 @@ void Navigation::updateWheelSpeeds(std::vector<int> path)
     double vL = (1 + error) / 2;
     double vR = (1 - error) / 2;
 
-    pwmValueLeftWheel = 25000 + 10000 * vL;
-    pwmValueRightWheel = 23500 + 10000 * vR;
+    pwmValueLeftWheel = 30000 + 10000 * vL;
+    pwmValueRightWheel = 28500 + 10000 * vR;
 
 }
 
@@ -719,6 +734,20 @@ void Navigation::nextContainer(odcore::data::Container &a_c)
 
       std::cout << "[" << getName() << "] Received a ProximityReading: "
           << reading.toString() << "." << std::endl;
+  } else if (dataType == opendlv::model::State::ID()) {
+    opendlv::model::State state =
+        a_c.getData<opendlv::model::State>();
+
+    double positionX = static_cast<double>(state.getPosition().getX());
+    double positionY = static_cast<double>(state.getPosition().getY());
+    double yaw = static_cast<double>(state.getAngularDisplacement().getZ());
+
+    m_positionX = positionX;
+    m_positionY = positionY;
+    m_positionYaw = yaw;
+
+    std::cout << "[" << getName() << "] Received a State: position "
+        << positionX << ", " << positionY << " yaw " << yaw << "." << std::endl;
   }
 }
 

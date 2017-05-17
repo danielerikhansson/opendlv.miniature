@@ -78,6 +78,9 @@ class Navigation :
   std::vector<int> asPath;
   uint32_t pwmValueLeftWheel;
   uint32_t pwmValueRightWheel;
+  double m_positionX;
+  double m_positionY;
+  double m_positionYaw;
 
 
 };
