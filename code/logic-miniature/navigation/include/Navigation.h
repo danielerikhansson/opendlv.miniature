@@ -81,6 +81,7 @@ class Navigation :
   double m_positionX;
   double m_positionY;
   double m_positionYaw;
+  int m_blinkLED;
 
 
 };

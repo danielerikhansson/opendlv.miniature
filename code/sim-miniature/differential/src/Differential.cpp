@@ -62,17 +62,17 @@ void Differential::nextContainer(odcore::data::Container &a_c)
 
   int32_t dataType = a_c.getDataType();
   if (dataType == automotive::miniature::SensorBoardData::ID()) {
-    auto sensorBoardData = 
+    auto sensorBoardData =
         a_c.getData<automotive::miniature::SensorBoardData>();
     if (m_debug) {
-      std::cout << "[" << getName() << "] Received an SensorBoardData: " 
+      std::cout << "[" << getName() << "] Received an SensorBoardData: "
           << sensorBoardData.toString() << "." << std::endl;
     }
     ConvertBoardDataToSensorReading(sensorBoardData);
-  } else if (dataType == opendlv::proxy::ToggleReading::ID()) {
-    auto reading = a_c.getData<opendlv::proxy::ToggleReading>();
+  } else if (dataType == opendlv::proxy::ToggleRequest::ID()) {
+    auto reading = a_c.getData<opendlv::proxy::ToggleRequest>();
     uint16_t pin = reading.getPin();
-    bool state = (reading.getState() == opendlv::proxy::ToggleReading::ToggleState::On);
+    bool state = (reading.getState() == opendlv::proxy::ToggleRequest::ToggleState::On);
     SetMotorControl(pin, state);
     if (m_debug) {
       std::cout << "[" << getName() << "] Received a ToggleReading: "
@@ -95,7 +95,7 @@ void Differential::setUp()
   odcore::base::KeyValueConfiguration kv = getKeyValueConfiguration();
 
   bool valueFound;
-  m_debug = kv.getOptionalValue<bool>("sim-miniature-differential.debug", 
+  m_debug = kv.getOptionalValue<bool>("sim-miniature-differential.debug",
       valueFound);
   if (!valueFound) {
     m_debug = false;
@@ -110,21 +110,23 @@ void Differential::tearDown()
 
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Differential::body()
 {
-  while (getModuleStateAndWaitForRemainingTimeInTimeslice() == 
+  double bodyRadius = 0.12;
+  double wheelRadius = 1;
+  while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
-  
+
     odcore::base::Lock l(m_mutex);
-  
-    opendlv::data::environment::Point3 prevPosition = 
+
+    opendlv::data::environment::Point3 prevPosition =
       m_currentEgoState.getPosition();
-    opendlv::data::environment::Point3 prevRotation = 
+    opendlv::data::environment::Point3 prevRotation =
       m_currentEgoState.getRotation();
-    opendlv::data::environment::Point3 prevVelocity = 
+    opendlv::data::environment::Point3 prevVelocity =
       m_currentEgoState.getVelocity();
 
     double prevVelX = prevVelocity.getX();
     double prevVelY = prevVelocity.getY();
-    
+
     // The division is needed due to a scaling problem, in order to convert into
     // meters. In your code below, everything will be meters.
     double prevPosX = prevPosition.getX() / 10.0;
@@ -133,37 +135,38 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Differential::body()
     double prevYaw = atan2(prevRotation.getY(), prevRotation.getX());
     // NOTE: Do not change the code above.
 
-
+    double leftWheelVelocity = m_leftWheelAngularVelocity * wheelRadius;
+    double rightWheelVelocity = m_rightWheelAngularVelocity * wheelRadius;
 
 
     ///// TODO: Add kinematic equations below. Use the prepared class global
     ///// variables for wheel speeds (already saved, see the below method).
 
-    double velX = 0.0; // Placeholder.
-    double velY = 0.0; // Placeholder.
-    //double yawRate = 0.0; // Placeholder.
-   
-    std::cout << "TODO: Add kinematic equations." << std::endl;
+    double velX = (leftWheelVelocity + rightWheelVelocity)/2 * cos(prevYaw);
+    double velY = (leftWheelVelocity + rightWheelVelocity)/2 * sin(prevYaw);
+    double yawRate = - (leftWheelVelocity - rightWheelVelocity)/(2*bodyRadius);
+
+
     ///// Kinematic equations above.
 
-
+    std::cout << "AngVel: " << m_leftWheelAngularVelocity << " : " << m_rightWheelAngularVelocity << endl;
+    std::cout << "Vel: " << velX << " : " << velY << endl;
 
 
     ///// TODO: Integrate simulation below. The time step is already saved in
     ///// a global variable.
 
-    double posX = prevPosX; // Placeholder.
-    double posY = prevPosY; // Placeholder.
-    double yaw = prevYaw; // Placeholder.
-    
-    std::cout << "TODO: Integrate simulation." << std::endl;
+    double posX = prevPosX + velX * m_deltaTime;
+    double posY = prevPosY + velY * m_deltaTime;
+    double yaw = prevYaw + yawRate * m_deltaTime;
+
     ///// Integration above.
 
 
 
-    
 
-    // Due to a simulation scaling problem, the position is scaled. 
+
+    // Due to a simulation scaling problem, the position is scaled.
     // NOTE: Do not change the code below.
     posX = posX * 10.0;
     posY = posY * 10.0;
@@ -203,21 +206,21 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Differential::body()
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
 }
 
-void Differential::ConvertPwmToWheelAngularVelocity(uint16_t a_senderStamp, 
+void Differential::ConvertPwmToWheelAngularVelocity(uint16_t a_senderStamp,
     uint32_t a_dutyCycleNs)
 {
-  int32_t const minDutyCycleNs = 25000; 
-  int32_t const maxDutyCycleNs = 50000; 
+  int32_t const minDutyCycleNs = 25000;
+  int32_t const maxDutyCycleNs = 50000;
 
   double const maxAngularVelocity = 10.0;
 
-  a_dutyCycleNs = (a_dutyCycleNs < minDutyCycleNs) ? minDutyCycleNs : a_dutyCycleNs; 
-  a_dutyCycleNs = (a_dutyCycleNs > maxDutyCycleNs) ? maxDutyCycleNs : a_dutyCycleNs; 
-  
-  double wheelAngularVelocity = maxAngularVelocity * 
-    (a_dutyCycleNs - minDutyCycleNs) / 
-    static_cast<double>(maxDutyCycleNs - minDutyCycleNs); 
-      
+  a_dutyCycleNs = (a_dutyCycleNs < minDutyCycleNs) ? minDutyCycleNs : a_dutyCycleNs;
+  a_dutyCycleNs = (a_dutyCycleNs > maxDutyCycleNs) ? maxDutyCycleNs : a_dutyCycleNs;
+
+  double wheelAngularVelocity = maxAngularVelocity *
+    (a_dutyCycleNs - minDutyCycleNs) /
+    static_cast<double>(maxDutyCycleNs - minDutyCycleNs);
+
   if (a_senderStamp == 1) {
     if (m_gpioInA && !m_gpioInB) {
       // Clockwise
@@ -244,15 +247,15 @@ void Differential::ConvertPwmToWheelAngularVelocity(uint16_t a_senderStamp,
 void Differential::ConvertBoardDataToSensorReading(
   automotive::miniature::SensorBoardData const &a_sensorBoardData)
 {
-  std::map<uint32_t, double> mapOfDistances = 
+  std::map<uint32_t, double> mapOfDistances =
       a_sensorBoardData.getMapOfDistances();
- 
+
   double const maxDistance = 4.0f * 10;
 
   for (auto distanceReading : mapOfDistances) {
     uint32_t sensorId = distanceReading.first;
     double distance = distanceReading.second;
-    
+
     float voltage = 1.8f;
     if (distance > 0.0 && distance < maxDistance) {
       voltage = 1.8f * static_cast<float>(distance / maxDistance);
@@ -261,7 +264,7 @@ void Differential::ConvertBoardDataToSensorReading(
     opendlv::proxy::AnalogReading analogReading(sensorId, voltage);
     odcore::data::Container analogContainer(analogReading);
     getConference().send(analogContainer);
-    
+
     opendlv::proxy::ProximityReading proximityReading(distance);
     odcore::data::Container proximityContainer(proximityReading);
     getConference().send(proximityContainer);
@@ -299,4 +302,4 @@ void Differential::SetMotorControl(uint16_t a_pin, bool a_state)
 
 }
 }
-} 
+}

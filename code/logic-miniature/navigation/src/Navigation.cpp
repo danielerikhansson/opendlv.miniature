@@ -70,6 +70,7 @@ Navigation::Navigation(const int &argc, char **argv)
     , m_positionX()
     , m_positionY()
     , m_positionYaw()
+    , m_blinkLED()
 {
 }
 
@@ -209,7 +210,8 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
   int leftForward = 1;
   int rightForward = 1;
   int counter = 0;
-  int blinkLED = 0;
+  //int blinkLED = 0;
+  m_blinkLED = 0;
   opendlv::proxy::ToggleRequest::ToggleState leftRotation_1;
   opendlv::proxy::ToggleRequest::ToggleState leftRotation_2;
   opendlv::proxy::ToggleRequest::ToggleState rightRotation_1;
@@ -221,7 +223,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
   //data::environment::Point3 randStart = data::environment::Point3(m_positionX, m_positionY,0);
   //data::environment::Point3 randTarget = cellToPos(200);
   data::environment::Point3 start = m_pointsOfInterest[1];
-    data::environment::Point3 target = m_pointsOfInterest[2];
+    data::environment::Point3 target = m_pointsOfInterest[3];
 
   std::cout << "Start point: " << start.toString() << "End point: " << target.toString() << std::endl;
 
@@ -246,8 +248,8 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     float voltageReadingPin0 = m_analogReadings[0];
     std::cout << "Reading from analog pin 0: " << voltageReadingPin0 << std::endl;
 
-    int leftWhiskerActive = m_gpioReadings[26];
-    int rightWhiskerActive = m_gpioReadings[46];
+    int leftWhiskerActive = 0; // m_gpioReadings[26];
+    int rightWhiskerActive = 0; //m_gpioReadings[46];
 
     std::cout << "leftWhiskerActive: " << leftWhiskerActive << std::endl;
     std::cout << "rightWhiskerActive: " << rightWhiskerActive << std::endl;
@@ -258,15 +260,15 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     // TODO: Add path -> Wheelspeeds -> pwm code
 
     // default values for wander base state
-    //pwmValueLeftWheel = 35000;
-    //pwmValueRightWheel = 33500;
+    pwmValueLeftWheel = 35000;
+    pwmValueRightWheel = 33500;
 
-    updateWheelSpeeds(asPath);
+    //updateWheelSpeeds(asPath);
 
     pwmValueServo = 1650000;
     leftForward = 1;
     rightForward = 1;
-    blinkLED = 0;
+    //blinkLED = 0;
 
     if (leftWhiskerActive && rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
         FSMstate = "backUp";
@@ -282,7 +284,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 
     if (FSMstate == "backUp") {
       pwmValueServo = 2200000;
-      blinkLED = 1;
+      //blinkLED = 1;
       leftForward = 0;
       rightForward = 0;
       if (counter > 20) {
@@ -326,7 +328,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       rightRotation_2 = opendlv::proxy::ToggleRequest::On;
     }
 
-    if (blinkLED) {
+    if (m_blinkLED) {
       blinkLED_state = opendlv::proxy::ToggleRequest::On;
     } else {
       blinkLED_state = opendlv::proxy::ToggleRequest::Off;
@@ -644,6 +646,8 @@ void Navigation::updateWheelSpeeds(std::vector<int> path)
     {
         // CHECK IF CLOSE ENOUGH TO CONSIDERED FINISHED, PERHAPS DO THIS SOMEWHERE ELSE
         // LOWER SPEED
+        m_blinkLED = 1;
+
     }
 
     carHeading.normalize();
@@ -655,8 +659,8 @@ void Navigation::updateWheelSpeeds(std::vector<int> path)
     double vL = (1 + error) / 2;
     double vR = (1 - error) / 2;
 
-    pwmValueLeftWheel = 30000 + 10000 * vL;
-    pwmValueRightWheel = 28500 + 10000 * vR;
+    pwmValueLeftWheel = 30000 + 20000 * vL;
+    pwmValueRightWheel = 28500 + 20000 * vR;
 
 }
 
