@@ -105,6 +105,13 @@ proxy-miniature-sonar-pru.pruIndex = 0
 proxy-miniature-sonar-pru.debug = 1
 proxy-miniature-sonar-pru.firmwarePath = ../share/opendlv-proxy-miniature-sonar-pru/firmware/hcsr04.bin
 
+proxy-miniature-lps.searchMargin = 0.02
+proxy-miniature-lps.frameId = 0
+proxy-miniature-lps.origoMarker = 0.0,0.0,0.0
+proxy-miniature-lps.forwardMarker = 0.145,0.0,0.0
+proxy-miniature-lps.leftwardMarker = 0.0,0.087,0.0
+proxy-miniature-lps.debug = 1
+
 ###############################################################################
 ###############################################################################
 #

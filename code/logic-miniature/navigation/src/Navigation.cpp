@@ -218,12 +218,15 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 
 
 
-  data::environment::Point3 randStart = data::environment::Point3(m_positionX, m_positionY,0);
-  data::environment::Point3 randTarget = cellToPos(200);
-  //std::cout << "Start point: " << randStart.toString() << "End point: " << randTarget.toString() << std::endl;
+  //data::environment::Point3 randStart = data::environment::Point3(m_positionX, m_positionY,0);
+  //data::environment::Point3 randTarget = cellToPos(200);
+  data::environment::Point3 start = m_pointsOfInterest[1];
+    data::environment::Point3 target = m_pointsOfInterest[2];
+
+  std::cout << "Start point: " << start.toString() << "End point: " << target.toString() << std::endl;
 
 
-  asPath = findPath(randStart, randTarget);
+  asPath = findPath(start, target);
   pathToString(asPath);
 
 
