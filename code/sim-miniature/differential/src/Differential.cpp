@@ -111,7 +111,7 @@ void Differential::tearDown()
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Differential::body()
 {
   double bodyRadius = 0.12;
-  double wheelRadius = 1;
+  double wheelRadius = 0.06;
   while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
 
@@ -135,8 +135,8 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Differential::body()
     double prevYaw = atan2(prevRotation.getY(), prevRotation.getX());
     // NOTE: Do not change the code above.
 
-    double leftWheelVelocity = m_leftWheelAngularVelocity * wheelRadius;
-    double rightWheelVelocity = m_rightWheelAngularVelocity * wheelRadius;
+    double rightWheelVelocity = m_leftWheelAngularVelocity * wheelRadius; // SHOULD BE RIGHT LEFT! Wrong in simulation
+    double leftWheelVelocity = m_rightWheelAngularVelocity * wheelRadius; // SHOULD BE RIGHT EFT! Wrong in simulaton
 
 
     ///// TODO: Add kinematic equations below. Use the prepared class global

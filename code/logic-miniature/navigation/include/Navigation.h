@@ -55,6 +55,8 @@ class Navigation :
   float dotProduct(data::environment::Point3, data::environment::Point3);
   virtual odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
   std::vector<data::environment::Point3> ReadPointString(std::string const &) const;
+  void updateWheelSpeeds_2(std::vector<int>);
+  void initialRotate();
   void updateWheelSpeeds(std::vector<int>);
   int getNearestCell(data::environment::Point3,std::vector<int>);
   data::environment::Point3 crossProduct(data::environment::Point3,data::environment::Point3);
@@ -82,6 +84,7 @@ class Navigation :
   double m_positionY;
   double m_positionYaw;
   int m_blinkLED;
+  std::string FSMstate;
 
 
 };
