@@ -689,6 +689,8 @@ void Navigation::updateWheelSpeeds_2(std::vector<int> path) {
 
     // FOR SIMULATION
 
+	std::cout << "vL : VR : " << vL << " : " << vR << endl;
+
     pwmValueLeftWheel = 20000 + 30000 * vL;
     pwmValueRightWheel = 20000 + 30000 * vR;
 
@@ -699,12 +701,30 @@ void Navigation::updateWheelSpeeds_2(std::vector<int> path) {
 }
 
 double Navigation::angleCalc(data::environment::Point3 fi, double yaw) {
-    double rotateAngle = -atan2(fi.getY(),fi.getX());
-    double x=cos(yaw);
+  double PI = 3.14159265;
+
+	
+
+	double rotateAngle = atan2(fi.getY(),fi.getX());
+	std::cout << "Pointheading: " << rotateAngle << endl;	
+	double resAngle = 0;
+
+	if (yaw >= PI/2  && rotateAngle <= - PI/2)  {
+		resAngle = -2*PI - (rotateAngle - yaw);
+	} else if (yaw <= -PI/2 && rotateAngle >= PI/2) {
+		resAngle = 2*PI - (rotateAngle - yaw);
+	} else {
+		resAngle = yaw - rotateAngle;
+	}
+	
+	return resAngle;
+
+/*  double rotateAngle = -atan2(fi.getY(),fi.getX());
+  double x=cos(yaw);
     double y=sin(yaw);
     x=x*cos(rotateAngle)-y*sin(rotateAngle);
-    y=x*sin(rotateAngle)+y*cos(rotateAngle);
-    return atan2(y,x);
+   y=x*sin(rotateAngle)+y*cos(rotateAngle);
+    return atan2(y,x);*/
 }
 
 
@@ -718,15 +738,16 @@ void Navigation::initialRotate() {
   double carHeading = m_positionYaw;
 
   double proportionality = 1;
-  double angleToPoint = atan2(headToPosition.getY(), headToPosition.getX());
-  double relativeAngle = (carHeading - angleToPoint) * proportionality / PI;
+  //double angleToPoint = atan2(headToPosition.getY(), headToPosition.getX());
+  //double relativeAngle = (carHeading - angleToPoint) * proportionality / PI;
+  double relativeAngle = angleCalc(headToPosition,carHeading)* proportionality / PI;
 
   if (relativeAngle > PI/10) {
-    pwmValueLeftWheel = 30000;
+    pwmValueLeftWheel = 35000;
     pwmValueRightWheel = 0;
   } else if (relativeAngle < -PI/10) {
-    pwmValueLeftWheel = 30000;
-    pwmValueRightWheel = 0000;
+    pwmValueLeftWheel = 35000;
+    pwmValueRightWheel = 000;
   } else {
       FSMstate = "pathFollowing";
   }
