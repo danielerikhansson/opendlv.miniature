@@ -56,6 +56,7 @@ class Navigation :
   virtual odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
   std::vector<data::environment::Point3> ReadPointString(std::string const &) const;
   void updateWheelSpeeds_2(std::vector<int>);
+  double angleCalc(data::environment::Point3, double);
   void initialRotate();
   void updateWheelSpeeds(std::vector<int>);
   int getNearestCell(data::environment::Point3,std::vector<int>);

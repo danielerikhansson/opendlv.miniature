@@ -674,8 +674,8 @@ void Navigation::updateWheelSpeeds_2(std::vector<int> path) {
 
   if (!reachedTarget) {
     double proportionality = 1;
-    double angleToPoint = atan2(headToPosition.getY(), headToPosition.getX());
-    double relativeAngle = (carHeading - angleToPoint) * proportionality / PI;
+//    double angleToPoint = atan2(headToPosition.getY(), headToPosition.getX());
+    double relativeAngle = angleCalc(headToPosition,carHeading)* proportionality / PI;
 
 
     std::cout << "relative angle: " << relativeAngle << endl;
@@ -698,18 +698,16 @@ void Navigation::updateWheelSpeeds_2(std::vector<int> path) {
   }
 }
 
+double Navigation::angleCalc(data::environment::Point3 fi, double yaw) {
+    double rotateAngle = -atan2(fi.getY(),fi.getX());
+    double x=cos(yaw);
+    double y=sin(yaw);
+    x=x*cos(rotateAngle)-y*sin(rotateAngle);
+    y=x*sin(rotateAngle)+y*cos(rotateAngle);
+    return atan2(y,x);
+}
 
-/* void navigation::angleCalc(double angelRob, double angelPoint) {
 
-  if ((angleRob > PI /2 && angleToPoint < -PI/2) || angleRob < -PI/2 && angleToPoint > PI/2 ) {
-    atan2()
-
-
-  }
-
-
-
-}*/
 
 void Navigation::initialRotate() {
 
