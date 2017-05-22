@@ -210,8 +210,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
   uint32_t pwmValueServo = 1650000;
   int leftForward = 1;
   int rightForward = 1;
-//  int counter = 0;
-  //int blinkLED = 0;
+  int LEDCount = 0;
   m_blinkLED = 0;
   opendlv::proxy::ToggleRequest::ToggleState leftRotation_1;
   opendlv::proxy::ToggleRequest::ToggleState leftRotation_2;
@@ -254,7 +253,6 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     std::cout << "rightWhiskerActive: " << rightWhiskerActive << std::endl;
 
     std::cout << "State: " << FSMstate << std::endl;
-//    std::cout << "Counter: " << counter << std::endl;
 
 
     // default values for wander base state
@@ -266,22 +264,23 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     pwmValueServo = 1650000;
     leftForward = 1;
     rightForward = 1;
-    //blinkLED = 0;
-
 
 
     if (FSMstate == "initialRotate") {
       initialRotate();
 
     } else if (FSMstate == "pathFollowing") {
-      updateWheelSpeeds_2(asPath);
+      updateWheelSpeeds_2();
 
     } else if (FSMstate == "targetReached") {
       currentTarget++;
 
-      if ( currentTarget > 3){
-        currentTarget = 0;
+      int newTarget = rand() % 4;
+      while ( newTarget == currentTarget){
+	newTarget = rand() % 4;
       }
+
+      currentTarget = newTarget;
 
       start = data::environment::Point3(m_positionX, m_positionY,0);
       target = m_pointsOfInterest[currentTarget];
@@ -289,14 +288,21 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       pathToString(asPath);
 
       FSMstate = "initialRotate";
+
+      m_blinkLED = 1;
+      LEDCount = 0;
     }
 
+    LEDCount++;   
+    if (LEDCount > 15) {
+      LEDCount = 0;
+      m_blinkLED = 0; 
+    }
 
-
-
-
-
-
+   /* if (m_sonarDistance < 0) { // Simulation needs 0  // Add whiskars too if they work properly. 
+	pwmValueRightWheel = 0;
+	pwmValueLeftWheel = 0;
+    } */
 
 
 
@@ -326,12 +332,6 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       counter++;
     }
     if (FSMstate == "rotate") {
-        std::cout << "################################: " << std::endl;
-        std::cout << "################################: " << std::endl;
-        std::cout << "################################: " << std::endl;
-        std::cout << "################################: " << std::endl;
-        std::cout << "################################: " << std::endl;
-        std::cout << "################################: " << std::endl;
         pwmValueServo = 1100000;
         leftForward = 0;
         rightForward = 1;
@@ -345,16 +345,16 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 
 
     if (leftForward) {
-      //leftRotation_1 = opendlv::proxy::ToggleRequest::Off; // real life
-      //leftRotation_2 = opendlv::proxy::ToggleRequest::On; // Real life
-      leftRotation_1 = opendlv::proxy::ToggleRequest::On; // Simulation
-      leftRotation_2 = opendlv::proxy::ToggleRequest::Off; // Simulation
+      leftRotation_1 = opendlv::proxy::ToggleRequest::Off; // real life
+      leftRotation_2 = opendlv::proxy::ToggleRequest::On; // Real life
+      //leftRotation_1 = opendlv::proxy::ToggleRequest::On; // Simulation
+      //leftRotation_2 = opendlv::proxy::ToggleRequest::Off; // Simulation
 
     } else {
       leftRotation_1 = opendlv::proxy::ToggleRequest::On; // real life
       leftRotation_2 = opendlv::proxy::ToggleRequest::Off; // real life
-      leftRotation_1 = opendlv::proxy::ToggleRequest::Off; // Simulation
-      leftRotation_2 = opendlv::proxy::ToggleRequest::On; // Simulation
+    //  leftRotation_1 = opendlv::proxy::ToggleRequest::Off; // Simulation
+    //  leftRotation_2 = opendlv::proxy::ToggleRequest::On; // Simulation
     }
 
     if (rightForward) {
@@ -417,24 +417,7 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       std::cout << "[" << getName() << "] Sending PwmRequest chip4: "
           << requestServo.toString() << std::endl;
 
-          std::cout << "[" << getName() << "] Receiving distance: " << m_sonarDistance << std::endl;
-
-
-
-
-    // testing A*
-
-    //data::environment::Point3 randStart = cellToPos(rand() % nbrGridCells);
-    //data::environment::Point3 randTarget = cellToPos(rand() % nbrGridCells);
-    //data::environment::Point3 randStart = cellToPos(100);
-    //data::environment::Point3 randTarget = cellToPos(120);
-    //std::cout << "Start point: " << randStart.toString() << "End point: " << randTarget.toString() << std::endl;
-
-
-  //  asPath = findPath(randStart, randTarget);
-  //  pathToString(asPath);
-
-
+      std::cout << "[" << getName() << "] Receiving distance: " << m_sonarDistance << std::endl;
   }
   return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
 }
@@ -461,12 +444,8 @@ void Navigation::pathToString(std::vector<int> path) {
       if ( ((i+1) % nbrGridCols) == 0 ) {
         std::cout << endl;
       }
-
-
-
   }
 }
-
 
 
 /* A* searh method
@@ -565,7 +544,6 @@ std::vector<int> Navigation::findPath(data::environment::Point3 startPos, data::
   std::cout << std::endl;
 
 
-
   return path;
 }
 
@@ -628,17 +606,19 @@ data::environment::Point3 Navigation::crossProduct(data::environment::Point3 vec
 }
 // Helper function for availabilty of cell
 bool Navigation::isFree(int cell) {
+  double proportionality = 1.5; // To increase no-go zone near walls.
+
   data::environment::Point3 cellPos = cellToPos(cell);
   for (int i=0; i<(int)m_innerWalls.size(); i++) {
     double distanceToWall = minDistance(m_innerWalls[i], cellPos);
-    if (distanceToWall < gridCellSize*1.5) {
+    if (distanceToWall < gridCellSize * proportionality) {
       //std::cout << "|";
       return false;
     }
   }
   for (int i=0; i<(int)m_innerWalls.size(); i++) {
     double distanceToWall = minDistance(m_innerWalls[i], cellPos);
-    if (distanceToWall < gridCellSize*1.5) {
+    if (distanceToWall < gridCellSize * proportionality) {
       //std::cout << "|";
       return false;
     }
@@ -646,26 +626,24 @@ bool Navigation::isFree(int cell) {
   return true;
 }
 
-void Navigation::updateWheelSpeeds_2(std::vector<int> path) {
-
-
+void Navigation::updateWheelSpeeds_2() {
   double PI = 3.14159265;
 
   data::environment::Point3 carPosition = data::environment::Point3(m_positionX,m_positionY,0);
   data::environment::Point3 headToPosition;
   double carHeading = m_positionYaw;
 
-  int currentNodeIndex = getNearestCell(carPosition, path);
+  int currentNodeIndex = getNearestCell(carPosition, asPath);
 
   bool reachedTarget = false;
 
   int lookahead = 2;
-  int pathSize = path.size();
+  int pathSize = asPath.size();
   if ( currentNodeIndex + lookahead < pathSize ) {
-    headToPosition = cellToPos(path[currentNodeIndex + lookahead]) - carPosition;
+    headToPosition = cellToPos(asPath[currentNodeIndex + lookahead]) - carPosition;
 
   } else if ( currentNodeIndex + lookahead -1 < pathSize ) {
-    headToPosition = cellToPos(path[currentNodeIndex + lookahead -1]) - carPosition;
+    headToPosition = cellToPos(asPath[currentNodeIndex + lookahead -1]) - carPosition;
   } else {
     reachedTarget = true;
     FSMstate = "targetReached";
@@ -674,9 +652,7 @@ void Navigation::updateWheelSpeeds_2(std::vector<int> path) {
 
   if (!reachedTarget) {
     double proportionality = 1;
-//    double angleToPoint = atan2(headToPosition.getY(), headToPosition.getX());
-    double relativeAngle = angleCalc(headToPosition,carHeading)* proportionality / PI;
-
+    double relativeAngle = angleCalc(headToPosition,carHeading) * proportionality / PI;
 
     std::cout << "relative angle: " << relativeAngle << endl;
 
@@ -684,15 +660,13 @@ void Navigation::updateWheelSpeeds_2(std::vector<int> path) {
     double vR = (1 - relativeAngle) / 2;
 
 
-//    pwmValueLeftWheel = 30000 + 20000 * vL;
-//    pwmValueRightWheel = 28500 + 20000 * vR;
+    pwmValueLeftWheel = 24000 + 15000 * vL; // Real life
+    pwmValueRightWheel = 23500 + 15000 * vR; // Real life
 
-    // FOR SIMULATION
+    std::cout << "vL : VR : " << vL << " : " << vR << endl;
 
-	std::cout << "vL : VR : " << vL << " : " << vR << endl;
-
-    pwmValueLeftWheel = 20000 + 30000 * vL;
-    pwmValueRightWheel = 20000 + 30000 * vR;
+//    pwmValueLeftWheel = 20000 + 30000 * vL; // Simulation
+//    pwmValueRightWheel = 20000 + 30000 * vR; // Simulation
 
   } else {
     pwmValueLeftWheel = 0;
@@ -701,9 +675,7 @@ void Navigation::updateWheelSpeeds_2(std::vector<int> path) {
 }
 
 double Navigation::angleCalc(data::environment::Point3 fi, double yaw) {
-  double PI = 3.14159265;
-
-	
+/*  double PI = 3.14159265;
 
 	double rotateAngle = atan2(fi.getY(),fi.getX());
 	std::cout << "Pointheading: " << rotateAngle << endl;	
@@ -717,37 +689,34 @@ double Navigation::angleCalc(data::environment::Point3 fi, double yaw) {
 		resAngle = yaw - rotateAngle;
 	}
 	
-	return resAngle;
+	return resAngle; */
 
-/*  double rotateAngle = -atan2(fi.getY(),fi.getX());
+  double rotateAngle = -atan2(fi.getY(),fi.getX());
   double x=cos(yaw);
     double y=sin(yaw);
-    x=x*cos(rotateAngle)-y*sin(rotateAngle);
-   y=x*sin(rotateAngle)+y*cos(rotateAngle);
-    return atan2(y,x);*/
+   double x2=x*cos(rotateAngle)-y*sin(rotateAngle);
+   double y2=x*sin(rotateAngle)+y*cos(rotateAngle);
+    return atan2(y2,x2);
 }
 
 
 
 void Navigation::initialRotate() {
-
   double PI = 3.14159265;
 
   data::environment::Point3 carPosition = data::environment::Point3(m_positionX,m_positionY,0);
-  data::environment::Point3 headToPosition = cellToPos(asPath[1]) - carPosition;
+  data::environment::Point3 headToPosition = cellToPos(asPath[2]) - carPosition;
   double carHeading = m_positionYaw;
 
   double proportionality = 1;
-  //double angleToPoint = atan2(headToPosition.getY(), headToPosition.getX());
-  //double relativeAngle = (carHeading - angleToPoint) * proportionality / PI;
-  double relativeAngle = angleCalc(headToPosition,carHeading)* proportionality / PI;
+  double relativeAngle = angleCalc(headToPosition,carHeading)* proportionality;
 
-  if (relativeAngle > PI/10) {
+  if (relativeAngle > PI/5) {
     pwmValueLeftWheel = 35000;
     pwmValueRightWheel = 0;
-  } else if (relativeAngle < -PI/10) {
-    pwmValueLeftWheel = 35000;
-    pwmValueRightWheel = 000;
+  } else if (relativeAngle < -PI/5) {
+    pwmValueLeftWheel = 0;
+    pwmValueRightWheel = 35000;
   } else {
       FSMstate = "pathFollowing";
   }

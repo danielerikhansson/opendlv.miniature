@@ -55,13 +55,12 @@ class Navigation :
   float dotProduct(data::environment::Point3, data::environment::Point3);
   virtual odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
   std::vector<data::environment::Point3> ReadPointString(std::string const &) const;
-  void updateWheelSpeeds_2(std::vector<int>);
+  void updateWheelSpeeds_2();
   double angleCalc(data::environment::Point3, double);
   void initialRotate();
   void updateWheelSpeeds(std::vector<int>);
   int getNearestCell(data::environment::Point3,std::vector<int>);
   data::environment::Point3 crossProduct(data::environment::Point3,data::environment::Point3);
-  //std::vector<data::environment::Point3> findPath(data::environment::Point3 &start, data::environment::Point3 &goal);
   odcore::base::Mutex m_mutex;
   std::vector<data::environment::Line> m_outerWalls;
   std::vector<data::environment::Line> m_innerWalls;

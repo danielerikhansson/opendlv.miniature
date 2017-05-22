@@ -77,7 +77,7 @@ proxy-miniature-analog.conversion-constant = 1
 proxy-miniature-analog.debug = 0
 proxy-miniature-analog.pins = 0,1,2,3,4,5,6
 
-proxy-miniature-gpio.debug = 1
+proxy-miniature-gpio.debug = 0
 proxy-miniature-gpio.systemPath = /sys/class/gpio
 proxy-miniature-gpio.pins = 30,31,60,51,26,46,47,44,45
 proxy-miniature-gpio.values = 0,1,0,1,0,0,0,0,0
@@ -108,9 +108,9 @@ proxy-miniature-sonar-pru.firmwarePath = ../share/opendlv-proxy-miniature-sonar-
 proxy-miniature-lps.searchMargin = 0.02
 proxy-miniature-lps.frameId = 0
 proxy-miniature-lps.origoMarker = 0.0,0.0,0.0
-proxy-miniature-lps.forwardMarker = 0.145,0.0,0.0
-proxy-miniature-lps.leftwardMarker = 0.0,0.087,0.0
-proxy-miniature-lps.debug = 1
+proxy-miniature-lps.forwardMarker = 0.1387,0.0,0.0
+proxy-miniature-lps.leftwardMarker = 0.0,0.0765,0.0
+proxy-miniature-lps.debug = 0
 
 ###############################################################################
 ###############################################################################
