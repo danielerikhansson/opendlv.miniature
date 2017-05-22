@@ -83,13 +83,13 @@ proxy-miniature-gpio.pins = 30,31,60,51,26,46,47,44,45
 proxy-miniature-gpio.values = 0,1,0,1,0,0,0,0,0
 proxy-miniature-gpio.directions = out,out,out,out,in,in,out,in,in
 
-proxy-miniature-pwm:1.debug = 0
+proxy-miniature-pwm:1.debug = 1
 proxy-miniature-pwm:1.systemPath = /sys/class/pwm/pwmchip0
 proxy-miniature-pwm:1.pins = 0
 proxy-miniature-pwm:1.periodsNs = 50000
 proxy-miniature-pwm:1.dutyCyclesNs = 25000
 
-proxy-miniature-pwm:2.debug = 0
+proxy-miniature-pwm:2.debug = 1
 proxy-miniature-pwm:2.systemPath = /sys/class/pwm/pwmchip2
 proxy-miniature-pwm:2.pins = 0
 proxy-miniature-pwm:2.periodsNs = 50000
@@ -108,8 +108,8 @@ proxy-miniature-sonar-pru.firmwarePath = ../share/opendlv-proxy-miniature-sonar-
 proxy-miniature-lps.searchMargin = 0.02
 proxy-miniature-lps.frameId = 0
 proxy-miniature-lps.origoMarker = 0.0,0.0,0.0
-proxy-miniature-lps.forwardMarker = 0.1387,0.0,0.0
-proxy-miniature-lps.leftwardMarker = 0.0,0.0765,0.0
+proxy-miniature-lps.forwardMarker = 0.128,0.0,0.0
+proxy-miniature-lps.leftwardMarker = 0.0,0.071,0.0
 proxy-miniature-lps.debug = 0
 
 ###############################################################################

@@ -204,7 +204,7 @@ void Navigation::tearDown()
 */
 odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 {
-  FSMstate = "initialRotate";
+  FSMstate = "pathPlanning";
   pwmValueLeftWheel = 35000;
   pwmValueRightWheel = 33500;
   uint32_t pwmValueServo = 1650000;
@@ -219,18 +219,14 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
   opendlv::proxy::ToggleRequest::ToggleState blinkLED_state;
 
   int currentTarget = 0;
-
   data::environment::Point3 start = data::environment::Point3(0, 0, 0);
-  //data::environment::Point3 randTarget = cellToPos(200);
-  //data::environment::Point3 start = m_pointsOfInterest[1];
   data::environment::Point3 target = m_pointsOfInterest[currentTarget];
-
+  bool firstStart = true;
 
   std::cout << "Start point: " << start.toString() << "End point: " << target.toString() << std::endl;
 
-
-  asPath = findPath(start, target);
-  pathToString(asPath);
+  //asPath = findPath(start, target);
+  //pathToString(asPath);
 
 
   while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
@@ -246,49 +242,43 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
     float voltageReadingPin0 = m_analogReadings[0];
     std::cout << "Reading from analog pin 0: " << voltageReadingPin0 << std::endl;
 
-    int leftWhiskerActive = 0; // m_gpioReadings[26];
-    int rightWhiskerActive = 0; //m_gpioReadings[46];
+    int leftWhiskerActive = m_gpioReadings[26];
+    int rightWhiskerActive = m_gpioReadings[46];
 
     std::cout << "leftWhiskerActive: " << leftWhiskerActive << std::endl;
     std::cout << "rightWhiskerActive: " << rightWhiskerActive << std::endl;
 
     std::cout << "State: " << FSMstate << std::endl;
 
-
-    // default values for wander base state
-  // pwmValueLeftWheel = 35000;
-  //  pwmValueRightWheel = 33500;
-
-
-
     pwmValueServo = 1650000;
     leftForward = 1;
     rightForward = 1;
 
+    if (FSMstate == "pathPlanning") {
 
-    if (FSMstate == "initialRotate") {
-      initialRotate();
-
-    } else if (FSMstate == "pathFollowing") {
-      updateWheelSpeeds_2();
-
-    } else if (FSMstate == "targetReached") {
-      currentTarget++;
-
-      int newTarget = rand() % 4;
-      while ( newTarget == currentTarget){
-	newTarget = rand() % 4;
+      if (!firstStart){
+        int newTarget = rand() % 4;
+        while ( newTarget == currentTarget){
+	  newTarget = rand() % 4;
+        }
+        currentTarget = newTarget;
+        start = data::environment::Point3(m_positionX, m_positionY, 0);
+        target = m_pointsOfInterest[currentTarget];
       }
-
-      currentTarget = newTarget;
-
-      start = data::environment::Point3(m_positionX, m_positionY,0);
-      target = m_pointsOfInterest[currentTarget];
+      firstStart = false;
       asPath = findPath(start, target);
       pathToString(asPath);
 
       FSMstate = "initialRotate";
 
+    } else if (FSMstate == "initialRotate") {
+      initialRotate();
+
+    } else if (FSMstate == "pathFollowing") {
+      updateWheelSpeeds();
+
+    } else if (FSMstate == "targetReached") {
+      FSMstate = "pathPlanning";
       m_blinkLED = 1;
       LEDCount = 0;
     }
@@ -299,62 +289,18 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
       m_blinkLED = 0; 
     }
 
-   /* if (m_sonarDistance < 0) { // Simulation needs 0  // Add whiskars too if they work properly. 
-	pwmValueRightWheel = 0;
-	pwmValueLeftWheel = 0;
-    } */
-
-
-
-
-
-/*    if (leftWhiskerActive && rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
-        FSMstate = "backUp";
-    }
-    else if (leftWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
-     // pwmValueRightWheel = 10000;
-	    FSMstate = "backUp";
-    }
-    else if (rightWhiskerActive && FSMstate!="backUp" && FSMstate!="rotate") {
-     // pwmValueLeftWheel = 10000;
-	    FSMstate = "backUp";
-    }
-
-    if (FSMstate == "backUp") {
-      pwmValueServo = 2200000;
-      //blinkLED = 1;
-      leftForward = 0;
-      rightForward = 0;
-      if (counter > 20) {
-        FSMstate = "rotate";
-        counter = 0;
-      }
-      counter++;
-    }
-    if (FSMstate == "rotate") {
-        pwmValueServo = 1100000;
-        leftForward = 0;
-        rightForward = 1;
-        if (counter > 15) {
-            FSMstate = "wander";
-            counter = 0;
-        }
-        counter++;
-    } */
-
-
 
     if (leftForward) {
-      leftRotation_1 = opendlv::proxy::ToggleRequest::Off; // real life
-      leftRotation_2 = opendlv::proxy::ToggleRequest::On; // Real life
-      //leftRotation_1 = opendlv::proxy::ToggleRequest::On; // Simulation
-      //leftRotation_2 = opendlv::proxy::ToggleRequest::Off; // Simulation
+    //  leftRotation_1 = opendlv::proxy::ToggleRequest::Off; // real life
+    //  leftRotation_2 = opendlv::proxy::ToggleRequest::On; // Real life
+      leftRotation_1 = opendlv::proxy::ToggleRequest::On; // Simulation
+      leftRotation_2 = opendlv::proxy::ToggleRequest::Off; // Simulation
 
     } else {
-      leftRotation_1 = opendlv::proxy::ToggleRequest::On; // real life
-      leftRotation_2 = opendlv::proxy::ToggleRequest::Off; // real life
-    //  leftRotation_1 = opendlv::proxy::ToggleRequest::Off; // Simulation
-    //  leftRotation_2 = opendlv::proxy::ToggleRequest::On; // Simulation
+      //leftRotation_1 = opendlv::proxy::ToggleRequest::On; // real life
+      //leftRotation_2 = opendlv::proxy::ToggleRequest::Off; // real life
+      leftRotation_1 = opendlv::proxy::ToggleRequest::Off; // Simulation
+      leftRotation_2 = opendlv::proxy::ToggleRequest::On; // Simulation
     }
 
     if (rightForward) {
@@ -626,7 +572,12 @@ bool Navigation::isFree(int cell) {
   return true;
 }
 
-void Navigation::updateWheelSpeeds_2() {
+/*
+    Method that takes a path and returns wheel speeds to incrementally follow
+    the path.
+*/
+
+void Navigation::updateWheelSpeeds() {
   double PI = 3.14159265;
 
   data::environment::Point3 carPosition = data::environment::Point3(m_positionX,m_positionY,0);
@@ -660,13 +611,13 @@ void Navigation::updateWheelSpeeds_2() {
     double vR = (1 - relativeAngle) / 2;
 
 
-    pwmValueLeftWheel = 24000 + 15000 * vL; // Real life
-    pwmValueRightWheel = 23500 + 15000 * vR; // Real life
+   // pwmValueLeftWheel = 27000 + 10000 * vL; // Real life
+   // pwmValueRightWheel = 26500 + 10000 * vR; // Real life
 
     std::cout << "vL : VR : " << vL << " : " << vR << endl;
 
-//    pwmValueLeftWheel = 20000 + 30000 * vL; // Simulation
-//    pwmValueRightWheel = 20000 + 30000 * vR; // Simulation
+    pwmValueLeftWheel = 20000 + 30000 * vL; // Simulation
+    pwmValueRightWheel = 20000 + 30000 * vR; // Simulation
 
   } else {
     pwmValueLeftWheel = 0;
@@ -675,21 +626,6 @@ void Navigation::updateWheelSpeeds_2() {
 }
 
 double Navigation::angleCalc(data::environment::Point3 fi, double yaw) {
-/*  double PI = 3.14159265;
-
-	double rotateAngle = atan2(fi.getY(),fi.getX());
-	std::cout << "Pointheading: " << rotateAngle << endl;	
-	double resAngle = 0;
-
-	if (yaw >= PI/2  && rotateAngle <= - PI/2)  {
-		resAngle = -2*PI - (rotateAngle - yaw);
-	} else if (yaw <= -PI/2 && rotateAngle >= PI/2) {
-		resAngle = 2*PI - (rotateAngle - yaw);
-	} else {
-		resAngle = yaw - rotateAngle;
-	}
-	
-	return resAngle; */
 
   double rotateAngle = -atan2(fi.getY(),fi.getX());
   double x=cos(yaw);
@@ -724,72 +660,10 @@ void Navigation::initialRotate() {
 
 
 
-
-/*
-    Method that takes a path and returns wheel speeds to incrementally follow
-    the path.
-*/
-
-//vhy void, why not return the wheel speeds
-void Navigation::updateWheelSpeeds(std::vector<int> path)
-{
-    data::environment::Point3 carPosition = data::environment::Point3(m_positionX,m_positionY,0); // TEMP, should probably be member
-    data::environment::Point3 carHeading = data::environment::Point3(cos(m_positionYaw),sin(m_positionYaw),0);; // TEMP, should probably be member
-
-    int currentNodeIndex = getNearestCell(carPosition,path); // TRIM vector?
-
-    //current nodeIndex can be the previously passed node (behind the robot)!
-    data::environment::Point3 headToPosition = cellToPos(path[currentNodeIndex]) - carPosition;
-    data::environment::Point3 headToTangent = data::environment::Point3(0,0,0);
-    // Look ahead (if not possible find the goal)
-
-    int lookahead = 2;
-    int pathSize = path.size();
-    if ( currentNodeIndex + lookahead < pathSize)
-    {
-        headToPosition = cellToPos(path[currentNodeIndex + lookahead]);
-        if ( currentNodeIndex + lookahead + 1 < pathSize)
-        {
-            headToTangent = cellToPos(path[currentNodeIndex + lookahead + 1]) - headToPosition;
-        }
-    }
-    else if ( currentNodeIndex + lookahead -1 < pathSize)
-    {
-        headToPosition = cellToPos(path[currentNodeIndex + lookahead - 1]);
-    }
-    else
-    {
-        // CHECK IF CLOSE ENOUGH TO CONSIDERED FINISHED, PERHAPS DO THIS SOMEWHERE ELSE
-        // LOWER SPEED
-        m_blinkLED = 1;
-
-    }
-
-    carHeading.normalize();
-    headToPosition.normalize();
-
-    double proportionality = 0.5;
-    double error = crossProduct(carHeading, headToPosition).getZ() * proportionality;
-
-    double vL = (1 - error) / 2;
-    double vR = (1 + error) / 2;
-
-
-//    pwmValueLeftWheel = 30000 + 20000 * vL;
-//    pwmValueRightWheel = 28500 + 20000 * vR;
-
-    // FOR SIMULATION
-
-    pwmValueLeftWheel = 18500 + 40000 * vL;
-    pwmValueRightWheel = 18500 + 40000 * vR;
-
-
-}
-
 /*
     Finds the index of nearst point in path to another path
 */
-//why not simply return the point from the path that is closest?
+
 int Navigation::getNearestCell(data::environment::Point3 point, std::vector<int> path)
 {
     if (path.size() == 0) { // Should never happen!

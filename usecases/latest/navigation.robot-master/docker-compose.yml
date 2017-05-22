@@ -11,7 +11,7 @@ services:
     logic-miniature-navigation:
         build: .
         network_mode: "host"
-        command: "/opt/opendlv.miniature/bin/opendlv-logic-miniature-navigation --cid=${CID} --freq=4 --id=1"
+        command: "/opt/opendlv.miniature/bin/opendlv-logic-miniature-navigation --cid=${CID} --freq=5 --id=1"
 
     proxy-miniature-lps-1:
         build: .
