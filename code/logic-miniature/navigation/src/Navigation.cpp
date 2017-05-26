@@ -225,10 +225,6 @@ odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Navigation::body()
 
   std::cout << "Start point: " << start.toString() << "End point: " << target.toString() << std::endl;
 
-  //asPath = findPath(start, target);
-  //pathToString(asPath);
-
-
   while (getModuleStateAndWaitForRemainingTimeInTimeslice() ==
       odcore::data::dmcp::ModuleStateMessage::RUNNING) {
 
